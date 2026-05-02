@@ -1,6 +1,7 @@
 {
   "name": "@ponder/db",
   "version": "0.0.0",
+  "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts"
@@ -8,7 +9,7 @@
   "scripts": {
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "dotenv -e .env -- tsx src/seed.ts"
+    "db:seed": "tsx src/seed.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
@@ -16,7 +17,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
-    "dotenv-cli": "^11.0.0",
+    "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.7.1"
   }
