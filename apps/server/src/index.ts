@@ -1,10 +1,14 @@
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import 'dotenv/config';
-
+import { requireAuth } from './middleware/clerk';
 import quotesRouter from './routes/quotes';
+import { clerkMiddleware } from '@clerk/hono';
 
 const app = new Hono();
+
+app.use('*', clerkMiddleware());
+app.use('*', requireAuth);
 
 app.route('/quotes', quotesRouter);
 

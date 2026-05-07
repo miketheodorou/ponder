@@ -1,25 +1,18 @@
 import 'dotenv/config';
 import { db } from './index';
-import { users, quotes, tags, quoteTags } from './schema';
+import { quotes, tags, quoteTags } from './schema';
+
+const SEED_USER_ID = process.env.SEED_USER_ID!;
 
 async function seed() {
   await db.delete(quoteTags);
   await db.delete(quotes);
   await db.delete(tags);
-  await db.delete(users);
-
-  const [user] = await db
-    .insert(users)
-    .values({
-      name: 'Michael',
-      email: 'michael@example.com'
-    })
-    .returning();
 
   const [quote] = await db
     .insert(quotes)
     .values({
-      userId: user.id,
+      userId: SEED_USER_ID,
       text: 'You have power over your mind, not outside events. Realize this, and you will find strength.',
       bookTitle: 'Meditations',
       authorName: 'Marcus Aurelius',
@@ -31,7 +24,7 @@ async function seed() {
   const [tag] = await db
     .insert(tags)
     .values({
-      userId: user.id,
+      userId: SEED_USER_ID,
       name: 'stoicism'
     })
     .returning();

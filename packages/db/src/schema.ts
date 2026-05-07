@@ -1,17 +1,8 @@
 import { pgTable, uuid, text, integer, timestamp } from 'drizzle-orm/pg-core';
 
-export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  createdAt: timestamp('created_at').defaultNow().notNull()
-});
-
 export const quotes = pgTable('quotes', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id),
+  userId: text('user_id').notNull(),
   text: text('text').notNull(),
   bookTitle: text('book_title').notNull(),
   authorName: text('author_name').notNull(),
@@ -22,9 +13,7 @@ export const quotes = pgTable('quotes', {
 
 export const tags = pgTable('tags', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id),
+  userId: text('user_id').notNull(),
   name: text('name').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
@@ -38,6 +27,5 @@ export const quoteTags = pgTable('quote_tags', {
     .references(() => tags.id)
 });
 
-export type User = typeof users.$inferInsert;
 export type Quote = typeof quotes.$inferInsert;
 export type Tag = typeof tags.$inferInsert;
