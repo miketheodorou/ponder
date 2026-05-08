@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,6 +11,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export default function EmailScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const [email, setEmail] = useState("");
   const trimmed = email.trim();
@@ -17,9 +19,7 @@ export default function EmailScreen() {
 
   const onSendCode = () => {
     if (!valid) return;
-    // TODO: route to /code with the email once step 3 (code verification)
-    // is wired up. Holding here keeps the UX honest — we can't actually
-    // send a code yet.
+    router.push({ pathname: "/code", params: { email: trimmed } });
   };
 
   return (

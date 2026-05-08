@@ -8,6 +8,7 @@ apps/mobile/
  │ ├── navigation.ts # toNavigationTheme(theme) — adapter to @react-navigation/native Theme
  │ └── index.ts # Public re-exports
  ├── components/
+ │ ├── CodeInput.tsx # 6-slot OTP grid backed by an invisible TextInput overlay
  │ ├── Eyebrow.tsx # Sans uppercase tracked label
  │ ├── Field.tsx # Eyebrow label + bottom-hairline TextInput, forwardRef'd
  │ ├── PrimaryButton.tsx # Pill CTA, solid + outline variants, disabled state
@@ -18,7 +19,8 @@ apps/mobile/
  └── (auth)/
  ├── \_layout.tsx # Stack with no header, themed contentStyle background
  ├── welcome.tsx # Wordmark + tagline + "Sign in with email" → /email
- └── email.tsx # "Sign in to Ponder" heading + Field + "Send code"
+ ├── email.tsx # "Sign in to Ponder" heading + Field + "Send code" → /code?email=…
+ └── code.tsx # "Check your email" heading + CodeInput + Resend + Verify
 
 ## Key architectural choices
 
@@ -36,8 +38,11 @@ apps/mobile/
 ## Screen notes
 
 - **welcome.tsx** maps directly to the prototype: 32px-tall blank eyebrow row at top (kept for symmetry with Email/Code), Lora-400 64pt wordmark with -1.28 letter-spacing, italic DM Sans Light tagline below, "Sign in with email" PrimaryButton + faint terms eyebrow at the bottom. Button pushes to `/email`.
-- **email.tsx** is top-anchored (no `flex: 1 + justifyContent: 'center'`): brand "Ponder" eyebrow row, then `paddingTop: 56` and the heading/subtitle/Field/Button stack. `autoFocus` on the Field opens the keyboard immediately. Submit is intentionally a no-op until the code screen exists — typed routes won't accept `/code` yet, and faking it would lie about what the app does.
+- **email.tsx** is top-anchored (no `flex: 1 + justifyContent: 'center'`): brand "Ponder" eyebrow row, then `paddingTop: 56` and the heading/subtitle/Field/Button stack. `autoFocus` on the Field opens the keyboard immediately. Submit pushes to `/code` with the email passed as a route param.
+- **code.tsx** mirrors email.tsx's layout (header + top-anchored form with `paddingTop: 56`), with the back button on the left of the header instead of an empty slot. Subtitle reads the email from `useLocalSearchParams` and renders it inline in `textPrimary` against the muted body. Verify is a no-op (no `/home` yet); auto-submits via `CodeInput`'s `onComplete` once the user enters the sixth digit, since the iOS number-pad has no return key.
 
 ## Component notes
 
 - **Field** wraps the Eyebrow-label + bottom-hairline TextInput pattern used by both auth and the future capture flow. It `forwardRef`s the underlying `TextInput` so screens can focus programmatically. **Italic placeholder workaround:** RN can't style `placeholderTextColor` independently from the input text style, so Field swaps the input's `fontFamily` to the italic variant (e.g. `DMSans_300Light_Italic`) while the value is empty, and back to the upright variant once the user types. The placeholder inherits the input's font, so it renders italic; the user's text doesn't.
+- **CodeInput** renders N visual slot Views with a single transparent `TextInput` absolutely positioned over them (`opacity: 0`, `caretHidden`, `selectionColor: 'transparent'`). Native taps focus the input; the OS keyboard handles all input mechanics. Non-digits are filtered inside the component, so consumers always get a clean numeric string. Active slot has a blinking caret driven by a `setInterval` (gated on focus). **Auto-fill:** `textContentType="oneTimeCode"` (iOS) and `autoComplete="sms-otp"` (Android) let the OS suggest codes received by SMS.
+- **Inline chevron in code.tsx** is drawn with a rotated bordered square (`borderTopWidth + borderLeftWidth + transform: rotate(-45deg)`) rather than pulling in `react-native-svg` for a single glyph. When more icons land, replace with a real icon component — don't pile up rotated-border chevrons across the codebase.
