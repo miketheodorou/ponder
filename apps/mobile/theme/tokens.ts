@@ -84,6 +84,7 @@ export const FontSize = {
   bodyMd: 13,
   bodyLg: 14,
   bodyXl: 15,
+  body2xl: 17,    // form input text
 
   serifSm: 13,
   serifMd: 15,

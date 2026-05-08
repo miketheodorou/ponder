@@ -11,8 +11,7 @@ export default function WelcomeScreen() {
   const router = useRouter();
 
   const onSignIn = () => {
-    // TODO: route to (auth)/email once that screen exists.
-    router.push("/welcome");
+    router.push("/email");
   };
 
   return (

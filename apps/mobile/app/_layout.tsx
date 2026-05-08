@@ -1,11 +1,18 @@
+import { ThemeProvider as NavigationThemeProvider } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import * as SystemUI from "expo-system-ui";
+import { useEffect, useMemo } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { ThemeProvider, fontsToLoad } from "@/theme";
+import {
+  ThemeProvider,
+  fontsToLoad,
+  toNavigationTheme,
+  useTheme,
+} from "@/theme";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -23,9 +30,32 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <StatusBar style="light" />
-        <Stack screenOptions={{ headerShown: false, animation: "fade" }} />
+        <ThemedShell />
       </ThemeProvider>
     </SafeAreaProvider>
+  );
+}
+
+function ThemedShell() {
+  const theme = useTheme();
+  const navigationTheme = useMemo(() => toNavigationTheme(theme), [theme]);
+
+  // Paint the native window background. This is the surface RN exposes
+  // briefly during Stack push animations — without setting it, you see
+  // white seams along the edge of the incoming screen.
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(theme.colors.background);
+  }, [theme.colors.background]);
+
+  return (
+    <NavigationThemeProvider value={navigationTheme}>
+      <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.colors.background },
+        }}
+      />
+    </NavigationThemeProvider>
   );
 }
