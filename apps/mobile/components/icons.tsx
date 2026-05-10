@@ -1,4 +1,4 @@
-import Svg, { Path } from "react-native-svg";
+import Svg, { Circle, Path } from "react-native-svg";
 
 interface IconProps {
   size?: number;
@@ -67,6 +67,20 @@ export function CloseIcon({ size = 16, color, strokeWidth = 1.2 }: IconProps) {
     <Svg width={size} height={size} viewBox="0 0 16 16" fill="none">
       <Path
         d="M2 2l12 12M14 2L2 14"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+export function SearchIcon({ size = 14, color, strokeWidth = 1.2 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 14 14" fill="none">
+      <Circle cx={6} cy={6} r={4.5} stroke={color} strokeWidth={strokeWidth} />
+      <Path
+        d="M9.5 9.5L13 13"
         stroke={color}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
