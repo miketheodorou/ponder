@@ -16,8 +16,13 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { CatalogueList } from "@/components/CatalogueList";
+import { JournalEntry } from "@/components/JournalEntry";
 import { QuoteDetail } from "@/components/QuoteDetail";
-import { QUOTES } from "@/data/quotes";
+import {
+  ENTRIES,
+  type JournalEntry as JournalEntryData,
+  QUOTES,
+} from "@/data/quotes";
 import { useTheme } from "@/theme";
 
 // The sheet covers 92% of the viewport — same proportion as the prototype.
@@ -43,7 +48,19 @@ const NAV_TIMING = {
   easing: Easing.bezier(0.32, 0.72, 0, 1),
 };
 
-type NavEntry = { kind: "detail"; quoteId: string };
+type NavEntry =
+  | { kind: "detail"; quoteId: string }
+  | { kind: "journal"; entryId: string; quoteId?: string };
+
+// Date format matches the mock data ("March 14, 2026") so session entries
+// render identically to seeded ones.
+function formatToday(): string {
+  return new Date().toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 interface CatalogueSheetProps {
   open: boolean;
@@ -57,27 +74,53 @@ export function CatalogueSheet({ open, onClose }: CatalogueSheetProps) {
 
   // 0 = fully open at rest, sheetHeight = fully closed (off-screen below).
   const translateY = useSharedValue(sheetHeight);
-  // 0 = root pane (list); 1 = pushed pane (detail).
+  // 0 → list (root), 1 → detail, 2 → journal. Continuously interpolated.
   const stackDepth = useSharedValue(0);
 
   const [navStack, setNavStack] = useState<NavEntry[]>([]);
-  const top = navStack[navStack.length - 1] ?? null;
 
-  // Keep the most recent detail entry rendered through the pop animation —
-  // otherwise the pane unmounts immediately and the user sees a blank slot
-  // sliding right.
-  const [lastDetail, setLastDetail] = useState<NavEntry | null>(null);
+  // Session-only journal entries created via "+ New entry" → Save. Stored at
+  // the sheet level (not on the QuoteDetail screen) so the value survives
+  // pop-to-detail and sheet close/reopen — only an app reload clears it.
+  // Drops in here cleanly until we have a real data layer.
+  const [sessionEntries, setSessionEntries] = useState<JournalEntryData[]>([]);
+
+  // Find the entry in the stack at each level (or null if not pushed). Each
+  // level's pane is also kept rendered through its pop animation via the
+  // matching `last*` state — see the comment on lastDetail.
+  const detailInStack =
+    navStack.find((e): e is Extract<NavEntry, { kind: "detail" }> =>
+      e.kind === "detail"
+    ) ?? null;
+  const journalInStack =
+    navStack.find((e): e is Extract<NavEntry, { kind: "journal" }> =>
+      e.kind === "journal"
+    ) ?? null;
+
+  // Keep the most recent entry rendered through the pop animation —
+  // otherwise the pane unmounts the moment it leaves the stack and the user
+  // sees a blank rectangle slide right.
+  const [lastDetail, setLastDetail] = useState<
+    Extract<NavEntry, { kind: "detail" }> | null
+  >(null);
+  const [lastJournal, setLastJournal] = useState<
+    Extract<NavEntry, { kind: "journal" }> | null
+  >(null);
 
   useEffect(() => {
-    if (top?.kind === "detail") {
-      setLastDetail(top);
-    }
-  }, [top]);
-
-  useEffect(() => {
-    stackDepth.value = withTiming(top ? 1 : 0, NAV_TIMING);
+    if (detailInStack) setLastDetail(detailInStack);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [top]);
+  }, [detailInStack?.quoteId]);
+
+  useEffect(() => {
+    if (journalInStack) setLastJournal(journalInStack);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [journalInStack?.entryId, journalInStack?.quoteId]);
+
+  useEffect(() => {
+    stackDepth.value = withTiming(navStack.length, NAV_TIMING);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navStack.length]);
 
   const pushDetail = useCallback((quoteId: string) => {
     setNavStack((stack) => [...stack, { kind: "detail", quoteId }]);
@@ -87,9 +130,52 @@ export function CatalogueSheet({ open, onClose }: CatalogueSheetProps) {
     setNavStack((stack) => stack.slice(0, -1));
   }, []);
 
-  // Open/close. After a close completes, drop any pushed detail so the next
-  // open lands on the list. Doing it on the animation callback avoids the
-  // brief "flash to list" that resetting immediately would cause.
+  const openEntry = useCallback((entryId: string) => {
+    setNavStack((stack) => [...stack, { kind: "journal", entryId }]);
+  }, []);
+
+  // The currently-pushed detail provides the linking quoteId for new entries.
+  // Reading the latest stack state via the updater avoids capturing a stale
+  // reference if the user double-taps "+ New entry" mid-render.
+  const newEntry = useCallback(() => {
+    setNavStack((stack) => {
+      const currentDetail = stack.find((e) => e.kind === "detail");
+      if (!currentDetail) return stack;
+      return [
+        ...stack,
+        {
+          kind: "journal",
+          entryId: "new",
+          quoteId: currentDetail.quoteId,
+        },
+      ];
+    });
+  }, []);
+
+  const saveJournalEntry = useCallback(
+    (body: string) => {
+      const trimmed = body.trim();
+      if (!trimmed) return;
+      const journal = navStack.find((e) => e.kind === "journal");
+      if (!journal || journal.entryId !== "new" || !journal.quoteId) return;
+
+      setSessionEntries((prev) => [
+        {
+          id: `s_${Date.now()}`,
+          quoteId: journal.quoteId!,
+          date: formatToday(),
+          body: trimmed,
+        },
+        ...prev,
+      ]);
+      setNavStack((stack) => stack.slice(0, -1));
+    },
+    [navStack]
+  );
+
+  // Open/close. After a close completes, drop any pushed nav entries so the
+  // next open lands on the list. Doing it on the animation callback avoids
+  // the brief "flash to list" that resetting immediately would cause.
   useEffect(() => {
     if (open) {
       translateY.value = withTiming(0, OPEN_TIMING);
@@ -118,18 +204,46 @@ export function CatalogueSheet({ open, onClose }: CatalogueSheetProps) {
 
   const listPaneStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: -windowWidth * PUSH_PARALLAX * stackDepth.value },
+      {
+        translateX: interpolate(
+          stackDepth.value,
+          [0, 1],
+          [0, -windowWidth * PUSH_PARALLAX],
+          "clamp"
+        ),
+      },
     ],
-    opacity: 1 - PUSH_DIM * stackDepth.value,
+    opacity: interpolate(stackDepth.value, [0, 1], [1, 1 - PUSH_DIM], "clamp"),
   }));
 
   const detailPaneStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: windowWidth * (1 - stackDepth.value) },
+      {
+        translateX: interpolate(
+          stackDepth.value,
+          [0, 1, 2],
+          [windowWidth, 0, -windowWidth * PUSH_PARALLAX],
+          "clamp"
+        ),
+      },
+    ],
+    opacity: interpolate(stackDepth.value, [1, 2], [1, 1 - PUSH_DIM], "clamp"),
+  }));
+
+  const journalPaneStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateX: interpolate(
+          stackDepth.value,
+          [1, 2],
+          [windowWidth, 0],
+          "clamp"
+        ),
+      },
     ],
   }));
 
-  // Drag-to-dismiss is restricted to the handle area only — the list inside
+  // Drag-to-dismiss is restricted to the handle area only — the panes inside
   // the sheet should be free to scroll without fighting the sheet gesture.
   const dragGesture = Gesture.Pan()
     .activeOffsetY(10)
@@ -151,10 +265,30 @@ export function CatalogueSheet({ open, onClose }: CatalogueSheetProps) {
       }
     });
 
-  const detailEntry = top?.kind === "detail" ? top : lastDetail;
+  const detailEntry = detailInStack ?? lastDetail;
   const detailQuote = detailEntry
     ? QUOTES.find((q) => q.id === detailEntry.quoteId) ?? null
     : null;
+
+  const journalEntry = journalInStack ?? lastJournal;
+  const resolvedJournalEntry: JournalEntryData | null = journalEntry
+    ? journalEntry.entryId === "new"
+      ? {
+          id: "new",
+          quoteId: journalEntry.quoteId ?? "",
+          date: "New entry",
+          body: "",
+        }
+      : ENTRIES[journalEntry.entryId] ??
+        sessionEntries.find((e) => e.id === journalEntry.entryId) ??
+        null
+    : null;
+
+  const detailSessionEntries = detailQuote
+    ? sessionEntries.filter((e) => e.quoteId === detailQuote.id)
+    : [];
+
+  const depth = navStack.length;
 
   return (
     <View
@@ -200,21 +334,42 @@ export function CatalogueSheet({ open, onClose }: CatalogueSheetProps) {
 
         <View style={styles.body}>
           <Animated.View
-            pointerEvents={top ? "none" : "auto"}
+            pointerEvents={depth === 0 ? "auto" : "none"}
             style={[StyleSheet.absoluteFill, listPaneStyle]}
           >
             <CatalogueList onSelectQuote={pushDetail} />
           </Animated.View>
 
           <Animated.View
-            pointerEvents={top ? "auto" : "none"}
+            pointerEvents={depth === 1 ? "auto" : "none"}
             style={[
               StyleSheet.absoluteFill,
               { backgroundColor: theme.colors.backgroundRaised },
               detailPaneStyle,
             ]}
           >
-            <QuoteDetail quote={detailQuote} onBack={popNav} />
+            <QuoteDetail
+              quote={detailQuote}
+              onBack={popNav}
+              onOpenEntry={openEntry}
+              onNewEntry={newEntry}
+              sessionEntries={detailSessionEntries}
+            />
+          </Animated.View>
+
+          <Animated.View
+            pointerEvents={depth === 2 ? "auto" : "none"}
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: theme.colors.backgroundRaised },
+              journalPaneStyle,
+            ]}
+          >
+            <JournalEntry
+              entry={resolvedJournalEntry}
+              onBack={popNav}
+              onSave={saveJournalEntry}
+            />
           </Animated.View>
         </View>
       </Animated.View>

@@ -11,5 +11,7 @@ export {
   PlusIcon,
   SearchIcon,
 } from "./icons";
+export { JournalEntry } from "./JournalEntry";
+export { NavHeader } from "./NavHeader";
 export { PrimaryButton } from "./PrimaryButton";
 export { QuoteDetail } from "./QuoteDetail";

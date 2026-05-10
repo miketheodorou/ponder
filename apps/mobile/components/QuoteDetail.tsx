@@ -1,14 +1,21 @@
+import { useState } from "react";
 import {
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 
 import { Eyebrow } from "@/components/Eyebrow";
-import { ChevronLeft, ChevronRight } from "@/components/icons";
-import { ENTRIES, type Quote } from "@/data/quotes";
+import { ChevronRight } from "@/components/icons";
+import { NavHeader } from "@/components/NavHeader";
+import {
+  ENTRIES,
+  type JournalEntry as JournalEntryData,
+  type Quote,
+} from "@/data/quotes";
 import { resolveFont, useTheme } from "@/theme";
 
 interface QuoteDetailProps {
@@ -16,42 +23,62 @@ interface QuoteDetailProps {
   onBack: () => void;
   onOpenEntry?: (entryId: string) => void;
   onNewEntry?: () => void;
+  /** Session entries linked to this quote — newest first. Pre-filtered by parent. */
+  sessionEntries?: JournalEntryData[];
 }
 
 const HORIZONTAL_GUTTER = 28;
 
+/**
+ * Read view of a quote with two ephemeral edit affordances: tags can be
+ * appended via an inline input on the "+ tag" pill, and notes can be edited
+ * by tapping the body. Edits live in component state — no persistence yet,
+ * since the data layer is still mock.
+ */
 export function QuoteDetail({
   quote,
   onBack,
   onOpenEntry,
   onNewEntry,
+  sessionEntries = [],
 }: QuoteDetailProps) {
   const theme = useTheme();
 
+  // Ephemeral edit state. Reset on remount, which is acceptable until the
+  // data layer is real.
+  const [tags, setTags] = useState<string[]>(quote?.tags ?? []);
+  const [editingTag, setEditingTag] = useState(false);
+  const [tagDraft, setTagDraft] = useState("");
+
+  const [notes, setNotes] = useState(quote?.notes ?? "");
+  const [editingNotes, setEditingNotes] = useState(false);
+
   if (!quote) return null;
 
-  const linkedEntries = quote.entries
+  const seededEntries = quote.entries
     .map((id) => ENTRIES[id])
     .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+  // Session entries (newest first) sit above the seeded ones — what you just
+  // saved should be at the top of the list.
+  const linkedEntries = [...sessionEntries, ...seededEntries];
+
+  const submitTag = () => {
+    const trimmed = tagDraft.trim().toLowerCase();
+    if (trimmed && !tags.includes(trimmed)) {
+      setTags((prev) => [...prev, trimmed]);
+    }
+    setTagDraft("");
+    setEditingTag(false);
+  };
 
   return (
     <View style={styles.root}>
-      <View style={styles.navHeader}>
-        <Pressable
-          onPress={onBack}
-          hitSlop={12}
-          accessibilityRole="button"
-          accessibilityLabel="Back to catalogue"
-          style={styles.back}
-        >
-          <ChevronLeft size={theme.icon.sm} color={theme.colors.textMuted} />
-          <Eyebrow>Catalogue</Eyebrow>
-        </Pressable>
-      </View>
+      <NavHeader onBack={onBack} label="Catalogue" />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
       >
         <Text
           style={{
@@ -78,7 +105,7 @@ export function QuoteDetail({
             Tags
           </Eyebrow>
           <View style={styles.tagWrap}>
-            {quote.tags.map((tag) => (
+            {tags.map((tag) => (
               <View
                 key={tag}
                 style={[
@@ -101,24 +128,59 @@ export function QuoteDetail({
                 </Text>
               </View>
             ))}
-            {/* Add-tag affordance — purely visual until the tag editor lands. */}
-            <View
-              style={[
-                styles.addTag,
-                { borderColor: theme.colors.hairline },
-              ]}
-            >
-              <Text
-                style={{
-                  fontFamily: resolveFont({ family: "sans", weight: "400" }),
-                  fontSize: theme.fontSize.bodyXs,
-                  color: theme.colors.textFaint,
-                  letterSpacing: 0.22,
-                }}
+            {editingTag ? (
+              <View
+                style={[
+                  styles.tag,
+                  styles.tagEditing,
+                  {
+                    borderColor: theme.colors.hairlineStrong,
+                  },
+                ]}
               >
-                + tag
-              </Text>
-            </View>
+                <TextInput
+                  value={tagDraft}
+                  onChangeText={setTagDraft}
+                  onBlur={submitTag}
+                  onSubmitEditing={submitTag}
+                  autoFocus
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  returnKeyType="done"
+                  placeholder="tag"
+                  placeholderTextColor={theme.colors.textFaint}
+                  style={{
+                    fontFamily: resolveFont({ family: "sans", weight: "400" }),
+                    fontSize: theme.fontSize.bodyXs,
+                    color: theme.colors.textPrimary,
+                    letterSpacing: 0.22,
+                    minWidth: 40,
+                    padding: 0,
+                  }}
+                />
+              </View>
+            ) : (
+              <Pressable
+                onPress={() => setEditingTag(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Add tag"
+                style={[
+                  styles.addTag,
+                  { borderColor: theme.colors.hairline },
+                ]}
+              >
+                <Text
+                  style={{
+                    fontFamily: resolveFont({ family: "sans", weight: "400" }),
+                    fontSize: theme.fontSize.bodyXs,
+                    color: theme.colors.textFaint,
+                    letterSpacing: 0.22,
+                  }}
+                >
+                  + tag
+                </Text>
+              </Pressable>
+            )}
           </View>
         </View>
 
@@ -126,35 +188,64 @@ export function QuoteDetail({
           <Eyebrow size={theme.fontSize.eyebrowSm} style={styles.sectionLabel}>
             Notes
           </Eyebrow>
-          {quote.notes ? (
-            <Text
+          {editingNotes ? (
+            <TextInput
+              value={notes}
+              onChangeText={setNotes}
+              onBlur={() => setEditingNotes(false)}
+              autoFocus
+              multiline
+              placeholder="Add notes…"
+              placeholderTextColor={theme.colors.textFaint}
+              textAlignVertical="top"
               style={{
-                fontFamily: resolveFont({
-                  family: "serif",
-                  weight: "400",
-                  italic: true,
-                }),
+                // Edit mode is upright serif so the caret + selection feel
+                // unambiguous; display flips back to italic on blur.
+                fontFamily: resolveFont({ family: "serif", weight: "400" }),
                 fontSize: theme.fontSize.serifMd,
                 lineHeight: theme.lineHeight.serifMd,
                 color: theme.colors.textPrimary,
+                padding: 0,
+                minHeight: theme.lineHeight.serifMd * 2,
               }}
-            >
-              {quote.notes}
-            </Text>
+            />
           ) : (
-            <Text
-              style={{
-                fontFamily: resolveFont({
-                  family: "sans",
-                  weight: "300",
-                  italic: true,
-                }),
-                fontSize: theme.fontSize.bodyMd,
-                color: theme.colors.textFaint,
-              }}
+            <Pressable
+              onPress={() => setEditingNotes(true)}
+              accessibilityRole="button"
+              accessibilityLabel={notes ? "Edit notes" : "Add notes"}
             >
-              No notes yet.
-            </Text>
+              {notes ? (
+                <Text
+                  style={{
+                    fontFamily: resolveFont({
+                      family: "serif",
+                      weight: "400",
+                      italic: true,
+                    }),
+                    fontSize: theme.fontSize.serifMd,
+                    lineHeight: theme.lineHeight.serifMd,
+                    color: theme.colors.textPrimary,
+                  }}
+                >
+                  {notes}
+                </Text>
+              ) : (
+                <Text
+                  style={{
+                    fontFamily: resolveFont({
+                      family: "sans",
+                      weight: "300",
+                      italic: true,
+                    }),
+                    fontSize: theme.fontSize.bodyMd,
+                    color: theme.colors.textFaint,
+                  }}
+                >
+                  Add notes…
+                </Text>
+              )}
+            </Pressable>
           )}
         </View>
 
@@ -283,20 +374,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
-  navHeader: {
-    paddingHorizontal: 22,
-    paddingTop: 10,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  back: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 6,
-    paddingRight: 6,
-    marginLeft: -6,
-  },
   scrollContent: {
     paddingHorizontal: HORIZONTAL_GUTTER,
     paddingTop: 24,
@@ -327,6 +404,9 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 100,
     borderWidth: StyleSheet.hairlineWidth,
+  },
+  tagEditing: {
+    backgroundColor: "transparent",
   },
   addTag: {
     paddingHorizontal: 10,

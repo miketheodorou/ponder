@@ -198,6 +198,12 @@ function filterQuotes(quotes: Quote[], query: string, chip: string): Quote[] {
         q.book.toLowerCase().includes(trimmed)
     );
   }
+  if (chip === "recent") {
+    // Date.parse handles the "Mar 14, 2026"-style strings used in mock data.
+    result = [...result].sort(
+      (a, b) => Date.parse(b.date) - Date.parse(a.date)
+    );
+  }
   return result;
 }
 
