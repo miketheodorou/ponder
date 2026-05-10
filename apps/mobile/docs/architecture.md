@@ -11,16 +11,22 @@ apps/mobile/
  │ ├── CodeInput.tsx # 6-slot OTP grid backed by an invisible TextInput overlay
  │ ├── Eyebrow.tsx # Sans uppercase tracked label
  │ ├── Field.tsx # Eyebrow label + bottom-hairline TextInput, forwardRef'd
+ │ ├── icons.tsx # SVG icon set (PlusIcon, ChevronUp/Left/Right, CloseIcon)
  │ ├── PrimaryButton.tsx # Pill CTA, solid + outline variants, disabled state
  │ └── index.ts
+ ├── data/
+ │ └── quotes.ts # Mock QUOTES, ENTRIES, FILTER_CHIPS — placeholder for the future API
  └── app/
  ├── \_layout.tsx # Loads fonts; sets system-UI bg; wraps Stack in SafeAreaProvider + ThemeProvider + NavigationThemeProvider; StatusBar tracks scheme
- ├── index.tsx # Redirect → /welcome
- └── (auth)/
+ ├── index.tsx # Redirect → /welcome (or /home when EXPO_PUBLIC_BYPASS_AUTH=1)
+ ├── (auth)/
+ │ ├── \_layout.tsx # Stack with no header, themed contentStyle background
+ │ ├── welcome.tsx # Wordmark + tagline + "Sign in with email" → /email
+ │ ├── email.tsx # "Sign in to Ponder" heading + Field + "Send code" → /code?email=…
+ │ └── code.tsx # "Check your email" heading + CodeInput + Resend + Verify
+ └── (app)/
  ├── \_layout.tsx # Stack with no header, themed contentStyle background
- ├── welcome.tsx # Wordmark + tagline + "Sign in with email" → /email
- ├── email.tsx # "Sign in to Ponder" heading + Field + "Send code" → /code?email=…
- └── code.tsx # "Check your email" heading + CodeInput + Resend + Verify
+ └── home.tsx # Header (Ponder + plus) / centered hero quote / footer (author·book + hairline + Swipe for Catalogue)
 
 ## Key architectural choices
 
@@ -34,9 +40,12 @@ apps/mobile/
   3. **Stack `contentStyle.backgroundColor`** — set on every Stack (root and `(auth)`) so each screen's surface is themed even before the screen mounts its own `View`.
 - **Top-anchor forms; don't fight the keyboard.** `KeyboardAvoidingView` on a vertically-centered form reflows the centered content as the keyboard rises — and that animation races the screen-push transition, which reads as jank. Forms are anchored from the top with explicit `paddingTop`; the keyboard slides up over the empty bottom area without moving anything. `autoFocus` on inputs works smoothly because the layout doesn't shift. If a form ever overflows on small devices, the fix is `ScrollView`, not KAV.
 - **Safe-area handled at the screen.** The prototype's `paddingTop: 56` was a status-bar mock inside the device frame — on a real device that's `useSafeAreaInsets().top`. Bottom uses `Math.max(insets.bottom, theme.spacing.xxl)` to respect the home-indicator inset.
+- **Icons are SVG, centralized in `components/icons.tsx`.** All glyphs share an `IconProps` shape (`size`, `color`, `strokeWidth`) and use the same stroke styling so weights stay consistent across screens. Replaces the rotated-border chevron approach used in `code.tsx`; that screen still uses the local one and can be migrated when convenient.
+- **Auth bypass flag.** `EXPO_PUBLIC_BYPASS_AUTH=1` (in `apps/mobile/.env.local`) makes the root index redirect to `/home` instead of `/welcome`, so we can iterate on app screens without going through the auth flow each time. Real auth will replace this when the API is wired up. `.env.example` documents the var; `.env*.local` is already gitignored at the repo root.
 
 ## Screen notes
 
+- **home.tsx** is the post-auth landing screen. Header is a `Ponder` eyebrow on the left and a 32×32 plus button on the right (calls `onAdd` — capture modal is not wired yet). The hero quote is rendered in Lora-400 at `serif4xl` (28pt), with `tightSerif` letter-spacing and a `marginTop: -32` optical lift so it reads slightly above true center. Footer stack: author·book eyebrow → full-width 0.5px hairline (uses `StyleSheet.hairlineWidth` so it stays crisp on every density) → centered `ChevronUp` + `Swipe for Catalogue` eyebrow (calls `onOpenCatalogue` — sheet is not wired yet). Uses `Math.max(insets.bottom, spacing.giant)` for the bottom inset to clear the home indicator. Hero quote is currently hardcoded to `q1`; that's the only piece of selection logic on the screen.
 - **welcome.tsx** maps directly to the prototype: 32px-tall blank eyebrow row at top (kept for symmetry with Email/Code), Lora-400 64pt wordmark with -1.28 letter-spacing, italic DM Sans Light tagline below, "Sign in with email" PrimaryButton + faint terms eyebrow at the bottom. Button pushes to `/email`.
 - **email.tsx** is top-anchored (no `flex: 1 + justifyContent: 'center'`): brand "Ponder" eyebrow row, then `paddingTop: 56` and the heading/subtitle/Field/Button stack. `autoFocus` on the Field opens the keyboard immediately. Submit pushes to `/code` with the email passed as a route param.
 - **code.tsx** mirrors email.tsx's layout (header + top-anchored form with `paddingTop: 56`), with the back button on the left of the header instead of an empty slot. Subtitle reads the email from `useLocalSearchParams` and renders it inline in `textPrimary` against the muted body. Verify is a no-op (no `/home` yet); auto-submits via `CodeInput`'s `onComplete` once the user enters the sixth digit, since the iOS number-pad has no return key.
