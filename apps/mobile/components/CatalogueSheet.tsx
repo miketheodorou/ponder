@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -16,6 +16,8 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { CatalogueList } from "@/components/CatalogueList";
+import { QuoteDetail } from "@/components/QuoteDetail";
+import { QUOTES } from "@/data/quotes";
 import { useTheme } from "@/theme";
 
 // The sheet covers 92% of the viewport — same proportion as the prototype.
@@ -23,6 +25,10 @@ const SHEET_HEIGHT_RATIO = 0.92;
 // Drag past this many points (or release with this much downward velocity) to dismiss.
 const DISMISS_TRANSLATION = 120;
 const DISMISS_VELOCITY = 800;
+// How far the underlying pane slides as the next pane is pushed on top.
+const PUSH_PARALLAX = 0.3;
+// How much the underlying pane dims under the new one.
+const PUSH_DIM = 0.6;
 
 const OPEN_TIMING = {
   duration: 380,
@@ -32,6 +38,12 @@ const SETTLE_TIMING = {
   duration: 280,
   easing: Easing.bezier(0.32, 0.72, 0, 1),
 };
+const NAV_TIMING = {
+  duration: 320,
+  easing: Easing.bezier(0.32, 0.72, 0, 1),
+};
+
+type NavEntry = { kind: "detail"; quoteId: string };
 
 interface CatalogueSheetProps {
   open: boolean;
@@ -40,15 +52,54 @@ interface CatalogueSheetProps {
 
 export function CatalogueSheet({ open, onClose }: CatalogueSheetProps) {
   const theme = useTheme();
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const sheetHeight = windowHeight * SHEET_HEIGHT_RATIO;
 
   // 0 = fully open at rest, sheetHeight = fully closed (off-screen below).
   const translateY = useSharedValue(sheetHeight);
+  // 0 = root pane (list); 1 = pushed pane (detail).
+  const stackDepth = useSharedValue(0);
+
+  const [navStack, setNavStack] = useState<NavEntry[]>([]);
+  const top = navStack[navStack.length - 1] ?? null;
+
+  // Keep the most recent detail entry rendered through the pop animation —
+  // otherwise the pane unmounts immediately and the user sees a blank slot
+  // sliding right.
+  const [lastDetail, setLastDetail] = useState<NavEntry | null>(null);
 
   useEffect(() => {
-    translateY.value = withTiming(open ? 0 : sheetHeight, OPEN_TIMING);
-    // translateY is a stable shared value; intentionally omitted from deps.
+    if (top?.kind === "detail") {
+      setLastDetail(top);
+    }
+  }, [top]);
+
+  useEffect(() => {
+    stackDepth.value = withTiming(top ? 1 : 0, NAV_TIMING);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [top]);
+
+  const pushDetail = useCallback((quoteId: string) => {
+    setNavStack((stack) => [...stack, { kind: "detail", quoteId }]);
+  }, []);
+
+  const popNav = useCallback(() => {
+    setNavStack((stack) => stack.slice(0, -1));
+  }, []);
+
+  // Open/close. After a close completes, drop any pushed detail so the next
+  // open lands on the list. Doing it on the animation callback avoids the
+  // brief "flash to list" that resetting immediately would cause.
+  useEffect(() => {
+    if (open) {
+      translateY.value = withTiming(0, OPEN_TIMING);
+    } else {
+      translateY.value = withTiming(sheetHeight, OPEN_TIMING, (finished) => {
+        if (finished) {
+          runOnJS(setNavStack)([]);
+        }
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, sheetHeight]);
 
@@ -63,6 +114,19 @@ export function CatalogueSheet({ open, onClose }: CatalogueSheetProps) {
       [1, 0],
       "clamp"
     ),
+  }));
+
+  const listPaneStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: -windowWidth * PUSH_PARALLAX * stackDepth.value },
+    ],
+    opacity: 1 - PUSH_DIM * stackDepth.value,
+  }));
+
+  const detailPaneStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: windowWidth * (1 - stackDepth.value) },
+    ],
   }));
 
   // Drag-to-dismiss is restricted to the handle area only — the list inside
@@ -86,6 +150,11 @@ export function CatalogueSheet({ open, onClose }: CatalogueSheetProps) {
         translateY.value = withTiming(0, SETTLE_TIMING);
       }
     });
+
+  const detailEntry = top?.kind === "detail" ? top : lastDetail;
+  const detailQuote = detailEntry
+    ? QUOTES.find((q) => q.id === detailEntry.quoteId) ?? null
+    : null;
 
   return (
     <View
@@ -130,7 +199,23 @@ export function CatalogueSheet({ open, onClose }: CatalogueSheetProps) {
         </GestureDetector>
 
         <View style={styles.body}>
-          <CatalogueList />
+          <Animated.View
+            pointerEvents={top ? "none" : "auto"}
+            style={[StyleSheet.absoluteFill, listPaneStyle]}
+          >
+            <CatalogueList onSelectQuote={pushDetail} />
+          </Animated.View>
+
+          <Animated.View
+            pointerEvents={top ? "auto" : "none"}
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: theme.colors.backgroundRaised },
+              detailPaneStyle,
+            ]}
+          >
+            <QuoteDetail quote={detailQuote} onBack={popNav} />
+          </Animated.View>
         </View>
       </Animated.View>
     </View>
@@ -159,5 +244,6 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
+    overflow: "hidden",
   },
 });

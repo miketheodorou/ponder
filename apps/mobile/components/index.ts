@@ -12,3 +12,4 @@ export {
   SearchIcon,
 } from "./icons";
 export { PrimaryButton } from "./PrimaryButton";
+export { QuoteDetail } from "./QuoteDetail";
