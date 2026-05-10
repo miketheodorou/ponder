@@ -10,24 +10,26 @@ import {
 
 import { Eyebrow } from "@/components/Eyebrow";
 import { SearchIcon } from "@/components/icons";
-import { FILTER_CHIPS, type Quote, QUOTES } from "@/data/quotes";
+import { FILTER_CHIPS, type Quote } from "@/data/quotes";
 import { resolveFont, useTheme } from "@/theme";
 
 interface CatalogueListProps {
+  /** Quotes to render — already merged from session + seeded by the parent. */
+  quotes: Quote[];
   onSelectQuote?: (quoteId: string) => void;
 }
 
 const HORIZONTAL_GUTTER = 28;
 
-export function CatalogueList({ onSelectQuote }: CatalogueListProps) {
+export function CatalogueList({ quotes, onSelectQuote }: CatalogueListProps) {
   const theme = useTheme();
   const [query, setQuery] = useState("");
   const [activeChip, setActiveChip] = useState<string>("all");
 
-  const filtered = useMemo(() => filterQuotes(QUOTES, query, activeChip), [
-    query,
-    activeChip,
-  ]);
+  const filtered = useMemo(
+    () => filterQuotes(quotes, query, activeChip),
+    [quotes, query, activeChip]
+  );
 
   return (
     <View style={styles.root}>
@@ -44,7 +46,7 @@ export function CatalogueList({ onSelectQuote }: CatalogueListProps) {
           >
             Catalogue
           </Text>
-          <Eyebrow>{`${QUOTES.length} quotes`}</Eyebrow>
+          <Eyebrow>{`${quotes.length} quotes`}</Eyebrow>
         </View>
 
         <View

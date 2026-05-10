@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -21,6 +21,7 @@ import { QuoteDetail } from "@/components/QuoteDetail";
 import {
   ENTRIES,
   type JournalEntry as JournalEntryData,
+  type Quote,
   QUOTES,
 } from "@/data/quotes";
 import { useTheme } from "@/theme";
@@ -52,25 +53,34 @@ type NavEntry =
   | { kind: "detail"; quoteId: string }
   | { kind: "journal"; entryId: string; quoteId?: string };
 
-// Date format matches the mock data ("March 14, 2026") so session entries
-// render identically to seeded ones.
-function formatToday(): string {
-  return new Date().toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
 interface CatalogueSheetProps {
   open: boolean;
   onClose: () => void;
+  /** Session-only quotes (newest first) prepended to seeded data. */
+  sessionQuotes: Quote[];
+  /** Session-only journal entries (newest first), spans both seeded + session quotes. */
+  sessionEntries: JournalEntryData[];
+  /** Called when the user saves a new journal entry from inside the sheet. */
+  onAddEntry: (input: { quoteId: string; body: string }) => void;
 }
 
-export function CatalogueSheet({ open, onClose }: CatalogueSheetProps) {
+export function CatalogueSheet({
+  open,
+  onClose,
+  sessionQuotes,
+  sessionEntries,
+  onAddEntry,
+}: CatalogueSheetProps) {
   const theme = useTheme();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const sheetHeight = windowHeight * SHEET_HEIGHT_RATIO;
+
+  // Session quotes show ahead of seeded ones — what you just captured should
+  // be at the top of the catalogue.
+  const allQuotes = useMemo(
+    () => [...sessionQuotes, ...QUOTES],
+    [sessionQuotes]
+  );
 
   // 0 = fully open at rest, sheetHeight = fully closed (off-screen below).
   const translateY = useSharedValue(sheetHeight);
@@ -78,12 +88,6 @@ export function CatalogueSheet({ open, onClose }: CatalogueSheetProps) {
   const stackDepth = useSharedValue(0);
 
   const [navStack, setNavStack] = useState<NavEntry[]>([]);
-
-  // Session-only journal entries created via "+ New entry" → Save. Stored at
-  // the sheet level (not on the QuoteDetail screen) so the value survives
-  // pop-to-detail and sheet close/reopen — only an app reload clears it.
-  // Drops in here cleanly until we have a real data layer.
-  const [sessionEntries, setSessionEntries] = useState<JournalEntryData[]>([]);
 
   // Find the entry in the stack at each level (or null if not pushed). Each
   // level's pane is also kept rendered through its pop animation via the
@@ -159,18 +163,10 @@ export function CatalogueSheet({ open, onClose }: CatalogueSheetProps) {
       const journal = navStack.find((e) => e.kind === "journal");
       if (!journal || journal.entryId !== "new" || !journal.quoteId) return;
 
-      setSessionEntries((prev) => [
-        {
-          id: `s_${Date.now()}`,
-          quoteId: journal.quoteId!,
-          date: formatToday(),
-          body: trimmed,
-        },
-        ...prev,
-      ]);
+      onAddEntry({ quoteId: journal.quoteId, body: trimmed });
       setNavStack((stack) => stack.slice(0, -1));
     },
-    [navStack]
+    [navStack, onAddEntry]
   );
 
   // Open/close. After a close completes, drop any pushed nav entries so the
@@ -267,7 +263,7 @@ export function CatalogueSheet({ open, onClose }: CatalogueSheetProps) {
 
   const detailEntry = detailInStack ?? lastDetail;
   const detailQuote = detailEntry
-    ? QUOTES.find((q) => q.id === detailEntry.quoteId) ?? null
+    ? allQuotes.find((q) => q.id === detailEntry.quoteId) ?? null
     : null;
 
   const journalEntry = journalInStack ?? lastJournal;
@@ -282,6 +278,10 @@ export function CatalogueSheet({ open, onClose }: CatalogueSheetProps) {
       : ENTRIES[journalEntry.entryId] ??
         sessionEntries.find((e) => e.id === journalEntry.entryId) ??
         null
+    : null;
+
+  const journalLinkedQuote = resolvedJournalEntry
+    ? allQuotes.find((q) => q.id === resolvedJournalEntry.quoteId) ?? null
     : null;
 
   const detailSessionEntries = detailQuote
@@ -337,7 +337,7 @@ export function CatalogueSheet({ open, onClose }: CatalogueSheetProps) {
             pointerEvents={depth === 0 ? "auto" : "none"}
             style={[StyleSheet.absoluteFill, listPaneStyle]}
           >
-            <CatalogueList onSelectQuote={pushDetail} />
+            <CatalogueList quotes={allQuotes} onSelectQuote={pushDetail} />
           </Animated.View>
 
           <Animated.View
@@ -367,6 +367,7 @@ export function CatalogueSheet({ open, onClose }: CatalogueSheetProps) {
           >
             <JournalEntry
               entry={resolvedJournalEntry}
+              linkedQuote={journalLinkedQuote}
               onBack={popNav}
               onSave={saveJournalEntry}
             />

@@ -10,11 +10,16 @@ import {
 
 import { Eyebrow } from "@/components/Eyebrow";
 import { NavHeader } from "@/components/NavHeader";
-import { type JournalEntry as JournalEntryData, QUOTES } from "@/data/quotes";
+import {
+  type JournalEntry as JournalEntryData,
+  type Quote,
+} from "@/data/quotes";
 import { resolveFont, useTheme } from "@/theme";
 
 interface JournalEntryProps {
   entry: JournalEntryData | null;
+  /** The quote this entry links to — resolved by the parent so session quotes work. */
+  linkedQuote: Quote | null;
   onBack: () => void;
   /** Called with the trimmed body when the user taps Save. New mode only. */
   onSave?: (body: string) => void;
@@ -35,14 +40,18 @@ const BODY_TRACKING = -0.085;
  * sends the trimmed body to the parent (CatalogueSheet) which appends it to
  * the session entries store and pops back to detail.
  */
-export function JournalEntry({ entry, onBack, onSave }: JournalEntryProps) {
+export function JournalEntry({
+  entry,
+  linkedQuote,
+  onBack,
+  onSave,
+}: JournalEntryProps) {
   const theme = useTheme();
   const isNew = entry?.id === "new";
   const [body, setBody] = useState(entry?.body ?? "");
 
   if (!entry) return null;
 
-  const linkedQuote = QUOTES.find((q) => q.id === entry.quoteId) ?? null;
   const canSave = body.trim().length > 0;
 
   const saveAction =
