@@ -1,19 +1,19 @@
-import { ThemeProvider as NavigationThemeProvider } from "@react-navigation/native";
-import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import { StatusBar } from "expo-status-bar";
-import * as SystemUI from "expo-system-ui";
-import { useEffect, useMemo } from "react";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
+import { useEffect, useMemo } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import {
   ThemeProvider,
   fontsToLoad,
   toNavigationTheme,
-  useTheme,
-} from "@/theme";
+  useTheme
+} from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -39,6 +39,8 @@ export default function RootLayout() {
   );
 }
 
+const isLoggedIn = true;
+
 function ThemedShell() {
   const theme = useTheme();
   const navigationTheme = useMemo(() => toNavigationTheme(theme), [theme]);
@@ -52,13 +54,20 @@ function ThemedShell() {
 
   return (
     <NavigationThemeProvider value={navigationTheme}>
-      <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
+      <StatusBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: theme.colors.background },
+          contentStyle: { backgroundColor: theme.colors.background }
         }}
-      />
+      >
+        <Stack.Protected guard={!isLoggedIn}>
+          <Stack.Screen name='(auth)' />
+        </Stack.Protected>
+        <Stack.Protected guard={isLoggedIn}>
+          <Stack.Screen name='(app)' />
+        </Stack.Protected>
+      </Stack>
     </NavigationThemeProvider>
   );
 }

@@ -1,9 +1,9 @@
-import { useRouter } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Eyebrow, PrimaryButton } from "@/components";
-import { resolveFont, useTheme } from "@/theme";
+import { Eyebrow, PrimaryButton } from '@/components';
+import { resolveFont, useTheme } from '@/theme';
 
 export default function WelcomeScreen() {
   const theme = useTheme();
@@ -11,7 +11,7 @@ export default function WelcomeScreen() {
   const router = useRouter();
 
   const onSignIn = () => {
-    router.push("/email");
+    router.push('/email');
   };
 
   return (
@@ -21,8 +21,8 @@ export default function WelcomeScreen() {
         {
           backgroundColor: theme.colors.background,
           paddingTop: insets.top,
-          paddingBottom: Math.max(insets.bottom, theme.spacing.xxl),
-        },
+          paddingBottom: Math.max(insets.bottom, theme.spacing.xxl)
+        }
       ]}
     >
       {/* Top eyebrow row — kept blank on Welcome for symmetry with the other auth screens. */}
@@ -32,12 +32,12 @@ export default function WelcomeScreen() {
       <View style={styles.center}>
         <Text
           style={{
-            fontFamily: resolveFont({ family: "serif", weight: "400" }),
+            fontFamily: resolveFont({ family: 'serif', weight: '400' }),
             fontSize: theme.fontSize.serifDisplay,
             lineHeight: theme.lineHeight.serifDisplay,
             letterSpacing: theme.letterSpacing.tightDisplay,
             color: theme.colors.textPrimary,
-            marginBottom: 22,
+            marginBottom: 22
           }}
         >
           Ponder
@@ -45,13 +45,17 @@ export default function WelcomeScreen() {
 
         <Text
           style={{
-            fontFamily: resolveFont({ family: "sans", weight: "300", italic: true }),
+            fontFamily: resolveFont({
+              family: 'sans',
+              weight: '300',
+              italic: true
+            }),
             fontSize: theme.fontSize.bodyLg,
             lineHeight: theme.lineHeight.bodyLg,
             letterSpacing: theme.letterSpacing.bodyLoose,
             color: theme.colors.textMuted,
-            textAlign: "center",
-            maxWidth: 260,
+            textAlign: 'center',
+            maxWidth: 260
           }}
         >
           A quiet home for the words you want to keep.
@@ -60,7 +64,7 @@ export default function WelcomeScreen() {
 
       {/* Bottom CTA. */}
       <View style={styles.bottom}>
-        <PrimaryButton label="Sign in with email" onPress={onSignIn} />
+        <PrimaryButton label='Sign in with email' onPress={onSignIn} />
         <View style={styles.disclaimer}>
           <Eyebrow
             size={theme.fontSize.eyebrowSm}
@@ -76,28 +80,28 @@ export default function WelcomeScreen() {
 
 const styles = StyleSheet.create({
   root: {
-    flex: 1,
+    flex: 1
   },
   eyebrowRow: {
     height: 32,
     paddingHorizontal: 28,
-    paddingTop: 20,
+    paddingTop: 20
   },
   center: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 32,
     // Pull content slightly above true vertical center so it sits comfortably
     // with the bottom CTA — matches the prototype's `marginTop: -40`.
-    marginTop: -40,
+    marginTop: -40
   },
   bottom: {
     paddingHorizontal: 32,
-    paddingBottom: 32,
+    paddingBottom: 32
   },
   disclaimer: {
     marginTop: 18,
-    alignItems: "center",
-  },
+    alignItems: 'center'
+  }
 });
