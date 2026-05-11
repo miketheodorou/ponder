@@ -37,8 +37,8 @@ const BODY_TRACKING = -0.085;
  * and a "New entry" date label.
  *
  * In new mode, the NavHeader's right slot renders a Save action; tapping it
- * sends the trimmed body to the parent (CatalogueSheet) which appends it to
- * the session entries store and pops back to detail.
+ * sends the trimmed body to the parent route, which is responsible for
+ * persisting and popping the nested stack.
  */
 export function JournalEntry({
   entry,

@@ -1,10 +1,10 @@
 export { CaptureModal, type CaptureSavedQuote } from "./CaptureModal";
 export { CatalogueList } from "./CatalogueList";
-export { CatalogueSheet } from "./CatalogueSheet";
 export { CodeInput } from "./CodeInput";
 export { Eyebrow } from "./Eyebrow";
 export { Field } from "./Field";
 export {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronUp,

@@ -1,17 +1,17 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState } from 'react';
 import {
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  View,
-} from "react-native";
+  View
+} from 'react-native';
 
-import { Eyebrow } from "@/components/Eyebrow";
-import { SearchIcon } from "@/components/icons";
-import { FILTER_CHIPS, type Quote } from "@/data/quotes";
-import { resolveFont, useTheme } from "@/theme";
+import { Eyebrow } from '@/components/Eyebrow';
+import { SearchIcon } from '@/components/icons';
+import { FILTER_CHIPS, type Quote } from '@/data/quotes';
+import { resolveFont, useTheme } from '@/theme';
 
 interface CatalogueListProps {
   /** Quotes to render — already merged from session + seeded by the parent. */
@@ -23,8 +23,8 @@ const HORIZONTAL_GUTTER = 28;
 
 export function CatalogueList({ quotes, onSelectQuote }: CatalogueListProps) {
   const theme = useTheme();
-  const [query, setQuery] = useState("");
-  const [activeChip, setActiveChip] = useState<string>("all");
+  const [query, setQuery] = useState('');
+  const [activeChip, setActiveChip] = useState<string>('all');
 
   const filtered = useMemo(
     () => filterQuotes(quotes, query, activeChip),
@@ -37,11 +37,11 @@ export function CatalogueList({ quotes, onSelectQuote }: CatalogueListProps) {
         <View style={styles.titleRow}>
           <Text
             style={{
-              fontFamily: resolveFont({ family: "serif", weight: "400" }),
+              fontFamily: resolveFont({ family: 'serif', weight: '400' }),
               fontSize: theme.fontSize.serif4xl,
               lineHeight: theme.lineHeight.serif4xl,
               letterSpacing: theme.letterSpacing.tightSerif,
-              color: theme.colors.textPrimary,
+              color: theme.colors.textPrimary
             }}
           >
             Catalogue
@@ -54,26 +54,26 @@ export function CatalogueList({ quotes, onSelectQuote }: CatalogueListProps) {
             styles.searchWrap,
             {
               backgroundColor: theme.colors.backgroundRaised2,
-              borderColor: theme.colors.hairline,
-            },
+              borderColor: theme.colors.hairline
+            }
           ]}
         >
           <SearchIcon size={theme.icon.sm} color={theme.colors.textMuted} />
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search quotes, authors, books"
+            placeholder='Search quotes, authors, books'
             placeholderTextColor={theme.colors.textFaint}
-            autoCapitalize="none"
+            autoCapitalize='none'
             autoCorrect={false}
-            returnKeyType="search"
+            returnKeyType='search'
             style={[
               styles.searchInput,
               {
                 color: theme.colors.textPrimary,
-                fontFamily: resolveFont({ family: "sans", weight: "300" }),
-                fontSize: theme.fontSize.bodyLg,
-              },
+                fontFamily: resolveFont({ family: 'sans', weight: '300' }),
+                fontSize: theme.fontSize.bodyLg
+              }
             ]}
           />
         </View>
@@ -91,29 +91,29 @@ export function CatalogueList({ quotes, onSelectQuote }: CatalogueListProps) {
             <Pressable
               key={chip.id}
               onPress={() => setActiveChip(chip.id)}
-              accessibilityRole="button"
+              accessibilityRole='button'
               accessibilityState={{ selected: active }}
               style={[
                 styles.chip,
                 {
                   backgroundColor: active
                     ? theme.colors.textPrimary
-                    : "transparent",
+                    : 'transparent',
                   borderColor: active
                     ? theme.colors.textPrimary
-                    : theme.colors.hairlineStrong,
-                },
+                    : theme.colors.hairlineStrong
+                }
               ]}
             >
               <Text
                 style={{
-                  fontFamily: resolveFont({ family: "sans", weight: "400" }),
+                  fontFamily: resolveFont({ family: 'sans', weight: '400' }),
                   fontSize: theme.fontSize.bodySm,
                   color: active
                     ? theme.colors.background
                     : theme.colors.textMuted,
                   letterSpacing:
-                    chip.id === "all" || chip.id === "recent" ? 0.72 : 0.24,
+                    chip.id === 'all' || chip.id === 'recent' ? 0.72 : 0.24
                 }}
               >
                 {chip.label}
@@ -127,16 +127,16 @@ export function CatalogueList({ quotes, onSelectQuote }: CatalogueListProps) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         style={styles.list}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps='handled'
       >
         {filtered.length === 0 ? (
           <Text
             style={{
-              fontFamily: resolveFont({ family: "sans", weight: "400" }),
+              fontFamily: resolveFont({ family: 'sans', weight: '400' }),
               fontSize: theme.fontSize.bodyMd,
               color: theme.colors.textMuted,
-              textAlign: "center",
-              paddingVertical: theme.spacing.massive,
+              textAlign: 'center',
+              paddingVertical: theme.spacing.massive
             }}
           >
             No quotes match.
@@ -146,23 +146,23 @@ export function CatalogueList({ quotes, onSelectQuote }: CatalogueListProps) {
             <Pressable
               key={quote.id}
               onPress={() => onSelectQuote?.(quote.id)}
-              accessibilityRole="button"
+              accessibilityRole='button'
               style={[
                 styles.row,
                 index > 0 && {
                   borderTopWidth: StyleSheet.hairlineWidth,
-                  borderTopColor: theme.colors.hairline,
-                },
+                  borderTopColor: theme.colors.hairline
+                }
               ]}
             >
               <Text
                 numberOfLines={2}
                 style={{
-                  fontFamily: resolveFont({ family: "serif", weight: "400" }),
+                  fontFamily: resolveFont({ family: 'serif', weight: '400' }),
                   fontSize: theme.fontSize.serifLg,
                   lineHeight: theme.lineHeight.serifLg,
                   color: theme.colors.textPrimary,
-                  marginBottom: 12,
+                  marginBottom: 12
                 }}
               >
                 {`“${quote.text}”`}
@@ -175,7 +175,7 @@ export function CatalogueList({ quotes, onSelectQuote }: CatalogueListProps) {
                   size={theme.fontSize.eyebrowSm}
                   color={theme.colors.textFaint}
                 >
-                  {quote.date.split(",")[0]}
+                  {quote.date.split(',')[0]}
                 </Eyebrow>
               </View>
             </Pressable>
@@ -188,7 +188,7 @@ export function CatalogueList({ quotes, onSelectQuote }: CatalogueListProps) {
 
 function filterQuotes(quotes: Quote[], query: string, chip: string): Quote[] {
   let result = quotes;
-  if (chip !== "all" && chip !== "recent") {
+  if (chip !== 'all' && chip !== 'recent') {
     result = result.filter((q) => q.tags.includes(chip));
   }
   const trimmed = query.trim().toLowerCase();
@@ -200,7 +200,7 @@ function filterQuotes(quotes: Quote[], query: string, chip: string): Quote[] {
         q.book.toLowerCase().includes(trimmed)
     );
   }
-  if (chip === "recent") {
+  if (chip === 'recent') {
     // Date.parse handles the "Mar 14, 2026"-style strings used in mock data.
     result = [...result].sort(
       (a, b) => Date.parse(b.date) - Date.parse(a.date)
@@ -211,59 +211,59 @@ function filterQuotes(quotes: Quote[], query: string, chip: string): Quote[] {
 
 const styles = StyleSheet.create({
   root: {
-    flex: 1,
+    flex: 1
   },
   header: {
     paddingHorizontal: HORIZONTAL_GUTTER,
     paddingTop: 8,
-    paddingBottom: 18,
+    paddingBottom: 18
   },
   titleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "baseline",
-    marginBottom: 18,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 18
   },
   searchWrap: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
     paddingHorizontal: 14,
     height: 42,
     borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: StyleSheet.hairlineWidth
   },
   searchInput: {
     flex: 1,
-    padding: 0,
+    padding: 0
   },
   chipsScroll: {
-    flexGrow: 0,
+    flexGrow: 0
   },
   chipsContent: {
     paddingHorizontal: HORIZONTAL_GUTTER,
     paddingBottom: 16,
-    gap: 8,
+    gap: 8
   },
   chip: {
     paddingHorizontal: 13,
     paddingVertical: 7,
     borderRadius: 100,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: StyleSheet.hairlineWidth
   },
   list: {
-    flex: 1,
+    flex: 1
   },
   listContent: {
     paddingHorizontal: HORIZONTAL_GUTTER,
-    paddingBottom: 40,
+    paddingBottom: 40
   },
   row: {
-    paddingVertical: 20,
+    paddingVertical: 20
   },
   meta: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  }
 });

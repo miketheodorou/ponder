@@ -34,6 +34,20 @@ export function ChevronUp({ size = 14, color, strokeWidth = 1.2 }: IconProps) {
   );
 }
 
+export function ChevronDown({ size = 14, color, strokeWidth = 1.2 }: IconProps) {
+  return (
+    <Svg width={size} height={size * 0.6} viewBox="0 0 14 8" fill="none">
+      <Path
+        d="M1 1l6 6 6-6"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 export function ChevronLeft({ size = 16, color, strokeWidth = 1.2 }: IconProps) {
   return (
     <Svg width={size * 0.6} height={size} viewBox="0 0 8 14" fill="none">
