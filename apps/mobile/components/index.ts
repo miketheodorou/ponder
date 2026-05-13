@@ -1,4 +1,3 @@
-export { CaptureModal, type CaptureSavedQuote } from "./CaptureModal";
 export { CatalogueList } from "./CatalogueList";
 export { CodeInput } from "./CodeInput";
 export { Eyebrow } from "./Eyebrow";

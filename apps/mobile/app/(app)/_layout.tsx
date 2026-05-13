@@ -16,6 +16,10 @@ export default function AppLayout() {
         name='catalogue'
         options={{ presentation: 'modal', gestureEnabled: false }}
       />
+      <Stack.Screen
+        name='capture'
+        options={{ presentation: 'modal', gestureEnabled: false }}
+      />
     </Stack>
   );
 }

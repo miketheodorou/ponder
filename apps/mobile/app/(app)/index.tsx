@@ -1,24 +1,15 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  CaptureModal,
-  type CaptureSavedQuote,
-  ChevronUp,
-  Eyebrow,
-  PlusIcon,
-  Toast
-} from '@/components';
+import { ChevronUp, Eyebrow, PlusIcon } from '@/components';
 import { QUOTES } from '@/data/quotes';
 import { resolveFont, useTheme } from '@/theme';
 
 // Quote rendered as the day's hero. Hardcoded to the most recent for now —
 // will become "today's pick" once there's real selection logic.
 const HERO_QUOTE_ID = 'q1';
-
-const TOAST_DURATION_MS = 2200;
 
 export default function HomeScreen() {
   const theme = useTheme();
@@ -27,31 +18,12 @@ export default function HomeScreen() {
 
   const quote = QUOTES.find((q) => q.id === HERO_QUOTE_ID) ?? QUOTES[0];
 
-  const [captureOpen, setCaptureOpen] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-
-  // Toast timer is held in a ref so consecutive saves restart the dismiss
-  // window cleanly instead of stacking timers.
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const showToast = useCallback((message: string) => {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast(message);
-    toastTimer.current = setTimeout(() => setToast(null), TOAST_DURATION_MS);
-  }, []);
-
   const openCatalogue = useCallback(() => {
     router.push('/catalogue');
   }, [router]);
-  const openCapture = useCallback(() => setCaptureOpen(true), []);
-  const closeCapture = useCallback(() => setCaptureOpen(false), []);
-
-  const onCaptureSave = useCallback(
-    (_input: CaptureSavedQuote) => {
-      closeCapture();
-      showToast('Saved to catalogue');
-    },
-    [closeCapture, showToast]
-  );
+  const openCapture = useCallback(() => {
+    router.push('/capture');
+  }, [router]);
 
   return (
     <View
@@ -112,13 +84,6 @@ export default function HomeScreen() {
           <Eyebrow>Catalogue</Eyebrow>
         </Pressable>
       </View>
-
-      <CaptureModal
-        open={captureOpen}
-        onClose={closeCapture}
-        onSave={onCaptureSave}
-      />
-      <Toast message={toast} />
     </View>
   );
 }
