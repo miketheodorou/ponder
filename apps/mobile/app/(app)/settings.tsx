@@ -1,6 +1,7 @@
-import { useClerk, useUser } from '@clerk/expo';
+import { useAuth, useClerk, useUser } from '@clerk/expo';
+import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   Gesture,
@@ -46,6 +47,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { user } = useUser();
   const { signOut } = useClerk();
+  const { getToken } = useAuth();
 
   // 0 = fully off-screen left, 1 = fully open. Drag offsets the panel
   // by raw px on top of the open value; on release we either spring back
@@ -84,6 +86,55 @@ export default function SettingsScreen() {
       setError(message);
       setSubmitting(false);
     }
+  };
+
+  // Dev-only convenience for grabbing a fresh JWT to paste into Postman /
+  // curl while iterating on the backend. Stripped out of production bundles
+  // because the entire block is guarded by `__DEV__`.
+  //
+  // We ask Clerk for the `dev` JWT template first — configured in the Clerk
+  // dashboard with a long expiry — so a copied token lasts a debug session
+  // instead of 60 seconds. If the template isn't set up, we fall back to
+  // the default short-lived session token and surface that in the label
+  // so it's clear which one landed in the clipboard.
+  const DEV_TOKEN_TEMPLATE = 'dev';
+  const [copyLabel, setCopyLabel] = useState('Copy session token');
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
+
+  const onCopyToken = async () => {
+    let nextLabel = copyLabel;
+    try {
+      let token: string | null = null;
+      let usedTemplate = true;
+      try {
+        token = await getToken({ template: DEV_TOKEN_TEMPLATE });
+      } catch {
+        token = null;
+      }
+      if (!token) {
+        usedTemplate = false;
+        token = await getToken();
+      }
+      if (!token) {
+        nextLabel = 'No active session';
+      } else {
+        await Clipboard.setStringAsync(token);
+        nextLabel = usedTemplate ? 'Copied' : 'Copied (default)';
+      }
+    } catch {
+      nextLabel = "Couldn't copy";
+    }
+    setCopyLabel(nextLabel);
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => {
+      setCopyLabel('Copy session token');
+    }, 1800);
   };
 
   const panGesture: PanGesture = Gesture.Pan()
@@ -259,6 +310,24 @@ export default function SettingsScreen() {
               </Text>
             ) : null}
 
+            {__DEV__ ? (
+              <View style={styles.devRow}>
+                <Pressable
+                  onPress={onCopyToken}
+                  hitSlop={8}
+                  accessibilityRole='button'
+                  accessibilityLabel='Copy session token (developer)'
+                >
+                  <Eyebrow
+                    size={theme.fontSize.eyebrowSm}
+                    color={theme.colors.textFaint}
+                  >
+                    {`Dev · ${copyLabel}`}
+                  </Eyebrow>
+                </Pressable>
+              </View>
+            ) : null}
+
             <View style={styles.versionRow}>
               <Eyebrow size={theme.fontSize.eyebrowSm} color={theme.colors.textFaint}>
                 Ponder · v1.0
@@ -376,8 +445,12 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: 28
   },
-  versionRow: {
+  devRow: {
     marginTop: 22,
+    alignItems: 'center'
+  },
+  versionRow: {
+    marginTop: 14,
     alignItems: 'center'
   }
 });
