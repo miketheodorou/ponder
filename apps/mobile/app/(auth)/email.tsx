@@ -1,3 +1,4 @@
+import { useSignIn, useSignUp } from '@clerk/expo';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -8,18 +9,75 @@ import { resolveFont, useTheme } from '@/theme';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const GENERIC_ERROR = 'Something went wrong. Please try again.';
+
 export default function EmailScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { signIn } = useSignIn();
+  const { signUp } = useSignUp();
 
   const [email, setEmail] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const trimmed = email.trim();
   const valid = EMAIL_RE.test(trimmed);
 
-  const onSendCode = () => {
-    if (!valid) return;
-    router.push({ pathname: '/code', params: { email: trimmed } });
+  const onSendCode = async () => {
+    if (!valid || submitting) return;
+
+    setSubmitting(true);
+    setError(null);
+
+    // Bootstrap a sign-in. `signUpIfMissing: true` makes the resource
+    // `isTransferable` when no user matches the identifier — letting us
+    // flip into a sign-up without parsing error codes.
+    const { error: createError } = await signIn.create({
+      identifier: trimmed,
+      signUpIfMissing: true
+    });
+
+    if (createError) {
+      setError(createError.message || GENERIC_ERROR);
+      setSubmitting(false);
+      return;
+    }
+
+    if (signIn.isTransferable) {
+      const { error: transferError } = await signUp.create({ transfer: true });
+      const { error: sendError } = transferError
+        ? { error: transferError }
+        : await signUp.verifications.sendEmailCode();
+
+      if (transferError || sendError) {
+        setError((transferError ?? sendError)?.message || GENERIC_ERROR);
+        setSubmitting(false);
+        return;
+      }
+
+      router.push({
+        pathname: '/code',
+        params: { email: trimmed, mode: 'signup' }
+      });
+      setSubmitting(false);
+      return;
+    }
+
+    const { error: sendError } = await signIn.emailCode.sendCode({
+      emailAddress: trimmed
+    });
+    if (sendError) {
+      setError(sendError.message || GENERIC_ERROR);
+      setSubmitting(false);
+      return;
+    }
+
+    router.push({
+      pathname: '/code',
+      params: { email: trimmed, mode: 'signin' }
+    });
+    setSubmitting(false);
   };
 
   return (
@@ -70,7 +128,10 @@ export default function EmailScreen() {
         <Field
           label='Email'
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(next) => {
+            setEmail(next);
+            if (error) setError(null);
+          }}
           placeholder='you@example.com'
           keyboardType='email-address'
           autoCapitalize='none'
@@ -83,10 +144,24 @@ export default function EmailScreen() {
           onSubmitEditing={onSendCode}
         />
 
+        {error ? (
+          <Text
+            style={{
+              marginTop: 14,
+              fontFamily: resolveFont({ family: 'sans', weight: '400' }),
+              fontSize: theme.fontSize.bodySm,
+              lineHeight: theme.lineHeight.bodySm,
+              color: theme.colors.textPrimary
+            }}
+          >
+            {error}
+          </Text>
+        ) : null}
+
         <View style={styles.cta}>
           <PrimaryButton
-            label='Send code'
-            disabled={!valid}
+            label={submitting ? 'Sending…' : 'Send code'}
+            disabled={!valid || submitting}
             onPress={onSendCode}
           />
         </View>
