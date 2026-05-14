@@ -3,3 +3,14 @@ packages:
   - "packages/*"
 
 nodeLinker: hoisted
+
+minimumReleaseAge: 10080
+
+allowBuilds:
+  '@clerk/shared': true
+  browser-tabs-lock: true
+  bufferutil: true
+  core-js: true
+  esbuild: true
+  unrs-resolver: true
+  utf-8-validate: true
