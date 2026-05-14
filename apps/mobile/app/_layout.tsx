@@ -21,16 +21,6 @@ import {
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts(fontsToLoad);
-
-  useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, fontError]);
-
-  if (!fontsLoaded && !fontError) return null;
-
   return (
     <ClerkProvider
       publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!}
@@ -53,6 +43,12 @@ function ThemedShell() {
   const theme = useTheme();
   const navigationTheme = useMemo(() => toNavigationTheme(theme), [theme]);
   const { isSignedIn, isLoaded } = useAuth();
+  const [fontsLoaded, fontError] = useFonts(fontsToLoad);
+
+  // Fonts can fall back if they error — we just don't want to block on them
+  // forever. Clerk's `isLoaded` has no error sibling; if its init hangs the
+  // splash stays up (rare; the token cache covers offline cold starts).
+  const ready = (fontsLoaded || fontError !== null) && isLoaded;
 
   // Paint the native window background. This is the surface RN exposes
   // briefly during Stack push animations — without setting it, you see
@@ -61,7 +57,14 @@ function ThemedShell() {
     SystemUI.setBackgroundColorAsync(theme.colors.background);
   }, [theme.colors.background]);
 
-  if (!isLoaded) return null;
+  // Single boot gate — fonts AND Clerk both green before we drop the splash
+  // and mount a route tree. Until then we render nothing, so the splash
+  // remains and the user never sees a blank or wrong-tree flash.
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync();
+  }, [ready]);
+
+  if (!ready) return null;
 
   return (
     <NavigationThemeProvider value={navigationTheme}>
