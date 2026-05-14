@@ -24,6 +24,9 @@ export default function HomeScreen() {
   const openCapture = useCallback(() => {
     router.push('/capture');
   }, [router]);
+  const openSettings = useCallback(() => {
+    router.push('/settings');
+  }, [router]);
 
   return (
     <View
@@ -37,7 +40,15 @@ export default function HomeScreen() {
       ]}
     >
       <View style={styles.header}>
-        <Eyebrow>Ponder</Eyebrow>
+        <Pressable
+          onPress={openSettings}
+          hitSlop={12}
+          accessibilityRole='button'
+          accessibilityLabel='Open settings'
+          style={styles.eyebrowAction}
+        >
+          <Eyebrow>Ponder</Eyebrow>
+        </Pressable>
         <Pressable
           onPress={openCapture}
           hitSlop={12}
@@ -102,6 +113,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: 20,
     paddingHorizontal: HORIZONTAL_GUTTER
+  },
+  eyebrowAction: {
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    marginLeft: -6
   },
   headerAction: {
     width: 32,

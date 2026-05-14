@@ -15,6 +15,7 @@ import {
   ThemeProvider,
   fontsToLoad,
   toNavigationTheme,
+  useAppearance,
   useTheme
 } from '@/theme';
 
@@ -44,11 +45,15 @@ function ThemedShell() {
   const navigationTheme = useMemo(() => toNavigationTheme(theme), [theme]);
   const { isSignedIn, isLoaded } = useAuth();
   const [fontsLoaded, fontError] = useFonts(fontsToLoad);
+  const { ready: appearanceReady } = useAppearance();
 
   // Fonts can fall back if they error — we just don't want to block on them
   // forever. Clerk's `isLoaded` has no error sibling; if its init hangs the
   // splash stays up (rare; the token cache covers offline cold starts).
-  const ready = (fontsLoaded || fontError !== null) && isLoaded;
+  // Appearance has to be read from AsyncStorage before the first paint so the
+  // user never sees the default theme flip to their preference.
+  const ready =
+    (fontsLoaded || fontError !== null) && isLoaded && appearanceReady;
 
   // Paint the native window background. This is the surface RN exposes
   // briefly during Stack push animations — without setting it, you see

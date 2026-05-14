@@ -20,6 +20,18 @@ export default function AppLayout() {
         name='capture'
         options={{ presentation: 'modal', gestureEnabled: false }}
       />
+      <Stack.Screen
+        name='settings'
+        options={{
+          presentation: 'transparentModal',
+          animation: 'none',
+          gestureEnabled: false,
+          // Lets the home screen below show through our scrim. Without this,
+          // the layout's default opaque backgroundColor paints over the home
+          // route and the dismiss animation looks like a delay.
+          contentStyle: { backgroundColor: 'transparent' }
+        }}
+      />
     </Stack>
   );
 }

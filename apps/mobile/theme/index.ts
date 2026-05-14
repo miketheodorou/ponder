@@ -1,4 +1,9 @@
-export { ThemeProvider, useTheme } from "./ThemeProvider";
+export {
+  ThemeProvider,
+  useAppearance,
+  useTheme,
+  type Appearance,
+} from "./ThemeProvider";
 export { toNavigationTheme } from "./navigation";
 export { resolveFont, fontsToLoad, type FontStyle } from "./typography";
 export {
