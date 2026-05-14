@@ -65,8 +65,14 @@ function ThemedShell() {
   // Single boot gate — fonts AND Clerk both green before we drop the splash
   // and mount a route tree. Until then we render nothing, so the splash
   // remains and the user never sees a blank or wrong-tree flash.
+  //
+  // hideAsync() can reject with "No native splash screen registered for
+  // given view controller" on iOS when called against a non-root view
+  // controller (which expo-router creates during route group swaps, e.g.
+  // (app) → (auth) after sign-out). The splash is already hidden by then;
+  // we swallow the rejection to keep the call fire-and-forget.
   useEffect(() => {
-    if (ready) SplashScreen.hideAsync();
+    if (ready) SplashScreen.hideAsync().catch(() => {});
   }, [ready]);
 
   if (!ready) return null;

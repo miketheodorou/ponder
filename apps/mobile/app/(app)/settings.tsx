@@ -1,6 +1,6 @@
 import { useClerk, useUser } from '@clerk/expo';
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   Gesture,
@@ -18,8 +18,10 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 
-import { CloseIcon, Eyebrow } from '@/components';
+import { CloseIcon, Eyebrow, PrimaryButton } from '@/components';
 import { resolveFont, useAppearance, useTheme, type Appearance } from '@/theme';
+
+const LOGOUT_ERROR = "Couldn't sign out. Please try again.";
 
 const SCRIM_TIMING = {
   duration: 320,
@@ -53,6 +55,9 @@ export default function SettingsScreen() {
 
   const { appearance, setAppearance } = useAppearance();
 
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     progress.value = withTiming(1, PANEL_TIMING);
   }, [progress]);
@@ -65,7 +70,20 @@ export default function SettingsScreen() {
   };
 
   const onLogout = async () => {
-    await signOut();
+    if (submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await signOut();
+      // No success path here — once signOut resolves, the root layout's
+      // <Stack.Protected> guard flips and this whole route unmounts. The
+      // submitting state going stale is harmless because nothing rerenders.
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error && err.message ? err.message : LOGOUT_ERROR;
+      setError(message);
+      setSubmitting(false);
+    }
   };
 
   const panGesture: PanGesture = Gesture.Pan()
@@ -219,31 +237,27 @@ export default function SettingsScreen() {
               {email}
             </Text>
 
-            <Pressable
+            <PrimaryButton
+              variant='outline'
+              label={submitting ? 'Signing out…' : 'Log out'}
+              disabled={submitting}
               onPress={onLogout}
-              accessibilityRole='button'
-              accessibilityLabel='Log out'
-              style={({ pressed }) => [
-                styles.logoutBtn,
-                {
-                  borderRadius: theme.radius.pill,
-                  borderColor: theme.colors.hairlineStrong,
-                  opacity: pressed ? 0.6 : 1
-                }
-              ]}
-            >
+            />
+
+            {error ? (
               <Text
                 style={{
-                  fontFamily: resolveFont({ family: 'sans', weight: '500' }),
+                  marginTop: 14,
+                  fontFamily: resolveFont({ family: 'sans', weight: '400' }),
                   fontSize: theme.fontSize.bodySm,
+                  lineHeight: theme.lineHeight.bodySm,
                   color: theme.colors.textPrimary,
-                  letterSpacing: theme.letterSpacing.uppercaseMd,
-                  textTransform: 'uppercase'
+                  textAlign: 'center'
                 }}
               >
-                Log out
+                {error}
               </Text>
-            </Pressable>
+            ) : null}
 
             <View style={styles.versionRow}>
               <Eyebrow size={theme.fontSize.eyebrowSm} color={theme.colors.textFaint}>
@@ -361,14 +375,6 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 28
-  },
-  logoutBtn: {
-    width: '100%',
-    paddingVertical: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    backgroundColor: 'transparent'
   },
   versionRow: {
     marginTop: 22,

@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Eyebrow, PrimaryButton } from '@/components';
+import { PrimaryButton } from '@/components';
 import { resolveFont, useTheme } from '@/theme';
 
 export default function WelcomeScreen() {
@@ -65,14 +65,6 @@ export default function WelcomeScreen() {
       {/* Bottom CTA. */}
       <View style={styles.bottom}>
         <PrimaryButton label='Sign in with email' onPress={onSignIn} />
-        <View style={styles.disclaimer}>
-          <Eyebrow
-            size={theme.fontSize.eyebrowSm}
-            color={theme.colors.textFaint}
-          >
-            By continuing you agree to our terms
-          </Eyebrow>
-        </View>
       </View>
     </View>
   );
@@ -99,9 +91,5 @@ const styles = StyleSheet.create({
   bottom: {
     paddingHorizontal: 32,
     paddingBottom: 32
-  },
-  disclaimer: {
-    marginTop: 18,
-    alignItems: 'center'
   }
 });

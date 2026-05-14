@@ -171,7 +171,8 @@ export default function CodeScreen() {
         >
           We sent a six-digit code to{" "}
           <Text style={{ color: theme.colors.textPrimary }}>{displayEmail}</Text>
-          . Enter it below to continue.
+          {mode === "signup" ? " to create your account" : ""}. Enter it below
+          to continue.
         </Text>
 
         <CodeInput

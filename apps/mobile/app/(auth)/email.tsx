@@ -38,12 +38,11 @@ export default function EmailScreen() {
       signUpIfMissing: true
     });
 
-    if (createError) {
-      setError(createError.message || GENERIC_ERROR);
-      setSubmitting(false);
-      return;
-    }
-
+    // Check transferability BEFORE surfacing createError. With
+    // `signUpIfMissing: true`, Clerk still returns an error like
+    // "Couldn't find your account" when the email is unknown — but it
+    // ALSO marks the resource transferable. Bailing on the error first
+    // would skip the transfer and dead-end legitimate new users.
     if (signIn.isTransferable) {
       const { error: transferError } = await signUp.create({ transfer: true });
       const { error: sendError } = transferError
@@ -60,6 +59,12 @@ export default function EmailScreen() {
         pathname: '/code',
         params: { email: trimmed, mode: 'signup' }
       });
+      setSubmitting(false);
+      return;
+    }
+
+    if (createError) {
+      setError(createError.message || GENERIC_ERROR);
       setSubmitting(false);
       return;
     }

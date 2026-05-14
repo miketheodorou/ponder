@@ -20,10 +20,15 @@ const CARET_BLINK_MS = 530;
 /**
  * CodeInput — N visual slots backed by a single transparent TextInput.
  *
- * The TextInput sits absolutely over the slot grid (opacity 0); native taps
- * focus it, the OS keyboard handles input, and the visible slot row is
- * driven from `value`. Non-digits are filtered inside the component, so the
- * consumer always sees a clean numeric string.
+ * The TextInput sits absolutely over the slot grid; native taps focus it,
+ * the OS keyboard handles input, and the visible slot row is driven from
+ * `value`. Non-digits are filtered inside the component, so the consumer
+ * always sees a clean numeric string.
+ *
+ * Paste: the TextInput's `color` is transparent so its own text never
+ * renders (the slot grid does that), but its opacity is left at 1 — that
+ * gives iOS something to anchor its native edit menu to on tap. The slot
+ * caret remains the only visible cursor.
  *
  * iOS auto-fill: `textContentType="oneTimeCode"` lets the OS suggest a code
  * received by SMS in the QuickType bar. Android equivalent is
@@ -123,7 +128,6 @@ export function CodeInput({
         autoComplete="sms-otp"
         maxLength={length}
         caretHidden
-        selectionColor="transparent"
         keyboardAppearance={theme.scheme === "dark" ? "dark" : "light"}
         style={[StyleSheet.absoluteFillObject, styles.hiddenInput]}
       />
@@ -150,7 +154,10 @@ const styles = StyleSheet.create({
     height: 22,
   },
   hiddenInput: {
-    opacity: 0,
+    // Color is transparent so the TextInput's own text never paints over the
+    // slot grid. Opacity stays at 1 so iOS sees a "real" input — that's what
+    // lets the native tap-to-Paste edit menu attach. (At opacity 0 iOS has
+    // no visible anchor and silently suppresses the callout.)
     color: "transparent",
   },
 });
