@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardToolbar } from 'react-native-keyboard-controller';
 
 import { ChevronDown } from '@/components';
 import { useTheme } from '@/theme';
@@ -41,6 +41,8 @@ export default function CatalogueLayout() {
         <Stack.Screen name='entry/[id]' />
         <Stack.Screen name='entry/new' />
       </Stack>
+
+      <KeyboardToolbar />
     </View>
   );
 }

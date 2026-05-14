@@ -1,12 +1,12 @@
 import { useState } from "react";
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 import { Eyebrow } from "@/components/Eyebrow";
 import { NavHeader } from "@/components/NavHeader";
@@ -76,10 +76,11 @@ export function JournalEntry({
     <View style={styles.root}>
       <NavHeader onBack={onBack} label="Quote" right={saveAction} />
 
-      <ScrollView
+      <KeyboardAwareScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        bottomOffset={24}
       >
         {linkedQuote && (
           <View
@@ -148,7 +149,7 @@ export function JournalEntry({
             {entry.body}
           </Text>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }

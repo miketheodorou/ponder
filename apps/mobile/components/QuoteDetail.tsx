@@ -1,12 +1,12 @@
 import { useState } from "react";
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 import { Eyebrow } from "@/components/Eyebrow";
 import { ChevronRight } from "@/components/icons";
@@ -75,10 +75,11 @@ export function QuoteDetail({
     <View style={styles.root}>
       <NavHeader onBack={onBack} label="Catalogue" />
 
-      <ScrollView
+      <KeyboardAwareScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        bottomOffset={24}
       >
         <Text
           style={{
@@ -340,7 +341,7 @@ export function QuoteDetail({
             </Text>
           </Pressable>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
