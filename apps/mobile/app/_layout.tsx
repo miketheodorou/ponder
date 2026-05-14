@@ -7,6 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { useEffect, useMemo } from 'react';
+import { LogBox } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -20,6 +21,15 @@ import {
 } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
+
+// Suppress a known noisy interaction between expo-router and
+// expo-splash-screen on iOS: when the (app) → (auth) tree swap happens
+// after sign-out, expo-router internally calls SplashScreen.hideAsync()
+// against the freshly-created view controller, which rejects with "No
+// native splash screen registered for given view controller". The splash
+// is already hidden; this rejection is harmless. We can't .catch upstream
+// code, but we can keep the dev-mode red box quiet about it.
+LogBox.ignoreLogs([/No native splash screen registered/]);
 
 export default function RootLayout() {
   return (
