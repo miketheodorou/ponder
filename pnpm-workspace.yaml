@@ -4,10 +4,10 @@ packages:
 
 nodeLinker: hoisted
 
-minimumReleaseAge: 10080
+minimumReleaseAge: 1440
 
 allowBuilds:
-  '@clerk/shared': true
+  "@clerk/shared": true
   browser-tabs-lock: true
   bufferutil: true
   core-js: true
