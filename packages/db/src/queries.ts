@@ -1,4 +1,4 @@
-import { eq, getTableColumns, sql } from 'drizzle-orm';
+import { desc, eq, getTableColumns, sql } from 'drizzle-orm';
 import { db } from './index';
 import { journalEntries, quotes, quoteThemes, themes } from './schema';
 
@@ -54,6 +54,21 @@ export function getJournalEntryById(id: string) {
     .select(journalEntryColumns)
     .from(journalEntries)
     .where(eq(journalEntries.id, id))
+    .then((rows) => rows[0]);
+}
+
+export function getTodaysQuote(userId: string) {
+  return db
+    .select({
+      id: quotes.id,
+      text: quotes.text,
+      bookTitle: quotes.bookTitle,
+      authorName: quotes.authorName
+    })
+    .from(quotes)
+    .where(eq(quotes.userId, userId))
+    .orderBy(desc(quotes.createdAt))
+    .limit(1)
     .then((rows) => rows[0]);
 }
 

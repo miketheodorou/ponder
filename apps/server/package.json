@@ -13,6 +13,7 @@
     "hono": "^4.12.16"
   },
   "devDependencies": {
+    "@hono/cli": "^0.1.10",
     "@types/node": "^20.11.17",
     "dotenv": "^17.4.2",
     "tsx": "^4.7.1",
