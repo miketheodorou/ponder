@@ -1,3 +1,4 @@
+import type { Quote } from "@ponder/db/schema";
 import { useState } from "react";
 import {
   Pressable,
@@ -11,56 +12,64 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { Eyebrow } from "@/components/Eyebrow";
 import { ChevronRight } from "@/components/icons";
 import { NavHeader } from "@/components/NavHeader";
-import {
-  ENTRIES,
-  type JournalEntry as JournalEntryData,
-  type Quote,
-} from "@/data/quotes";
 import { resolveFont, useTheme } from "@/theme";
 
+type JournalEntryPreview = {
+  id: string;
+  preview: string;
+  createdAt: string;
+};
+
+type QuoteDetailData = Quote & {
+  id: string;
+  createdAt: Date | string;
+  themes: string[];
+  journalEntries: JournalEntryPreview[];
+};
+
 interface QuoteDetailProps {
-  quote: Quote | null;
+  quote: QuoteDetailData | null;
   onBack: () => void;
   onOpenEntry?: (entryId: string) => void;
   onNewEntry?: () => void;
-  /** Session entries linked to this quote — newest first. Pre-filtered by parent. */
-  sessionEntries?: JournalEntryData[];
 }
 
 const HORIZONTAL_GUTTER = 28;
+const SAVED_DATE_FORMAT: Intl.DateTimeFormatOptions = {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+};
+const ENTRY_DATE_FORMAT: Intl.DateTimeFormatOptions = {
+  month: "short",
+  day: "numeric",
+};
 
 /**
  * Read view of a quote with two ephemeral edit affordances: tags can be
  * appended via an inline input on the "+ tag" pill, and notes can be edited
- * by tapping the body. Edits live in component state — no persistence yet,
- * since the data layer is still mock.
+ * by tapping the body. Edits live in component state — persistence for
+ * themes/notes isn't wired through to the server yet.
  */
 export function QuoteDetail({
   quote,
   onBack,
   onOpenEntry,
   onNewEntry,
-  sessionEntries = [],
 }: QuoteDetailProps) {
   const theme = useTheme();
 
-  // Ephemeral edit state. Reset on remount, which is acceptable until the
-  // data layer is real.
-  const [tags, setTags] = useState<string[]>(quote?.tags ?? []);
+  const [tags, setTags] = useState<string[]>(quote?.themes ?? []);
   const [editingTag, setEditingTag] = useState(false);
   const [tagDraft, setTagDraft] = useState("");
 
-  const [notes, setNotes] = useState(quote?.notes ?? "");
+  // Notes have no backing column on the server yet — ephemeral until then.
+  const [notes, setNotes] = useState("");
   const [editingNotes, setEditingNotes] = useState(false);
 
   if (!quote) return null;
 
-  const seededEntries = quote.entries
-    .map((id) => ENTRIES[id])
-    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
-  // Session entries (newest first) sit above the seeded ones — what you just
-  // saved should be at the top of the list.
-  const linkedEntries = [...sessionEntries, ...seededEntries];
+  const linkedEntries = quote.journalEntries;
 
   const submitTag = () => {
     const trimmed = tagDraft.trim().toLowerCase();
@@ -95,10 +104,16 @@ export function QuoteDetail({
         </Text>
 
         <View style={styles.metaGroup}>
-          <MetaRow label="Author" value={quote.author} />
-          <MetaRow label="Book" value={quote.book} />
-          <MetaRow label="Page" value={String(quote.page)} />
-          <MetaRow label="Saved" value={quote.date} />
+          <MetaRow label="Author" value={quote.authorName} />
+          <MetaRow label="Book" value={quote.bookTitle} />
+          <MetaRow
+            label="Page"
+            value={quote.pageNumber != null ? String(quote.pageNumber) : "—"}
+          />
+          <MetaRow
+            label="Saved"
+            value={formatDate(quote.createdAt, SAVED_DATE_FORMAT)}
+          />
         </View>
 
         <View style={styles.section}>
@@ -283,9 +298,11 @@ export function QuoteDetail({
                       marginBottom: 6,
                     }}
                   >
-                    {entry.body.split("\n")[0]}
+                    {entry.preview}
                   </Text>
-                  <Eyebrow size={theme.fontSize.eyebrowSm}>{entry.date}</Eyebrow>
+                  <Eyebrow size={theme.fontSize.eyebrowSm}>
+                    {formatDate(entry.createdAt, ENTRY_DATE_FORMAT)}
+                  </Eyebrow>
                 </View>
                 <ChevronRight
                   size={theme.icon.xs}
@@ -344,6 +361,15 @@ export function QuoteDetail({
       </KeyboardAwareScrollView>
     </View>
   );
+}
+
+function formatDate(
+  value: Date | string | undefined,
+  options: Intl.DateTimeFormatOptions
+): string {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  return date.toLocaleDateString(undefined, options);
 }
 
 interface MetaRowProps {

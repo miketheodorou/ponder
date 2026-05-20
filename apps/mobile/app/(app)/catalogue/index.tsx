@@ -1,13 +1,19 @@
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { getQuotes } from "@/api/quotes";
 import { CatalogueList } from "@/components";
-import { QUOTES } from "@/data/quotes";
 import { useTheme } from "@/theme";
 
 export default function CatalogueScreen() {
   const router = useRouter();
   const theme = useTheme();
+
+  const { data: quotes } = useQuery({
+    queryKey: ["quotes"],
+    queryFn: getQuotes,
+  });
 
   return (
     <View
@@ -17,7 +23,7 @@ export default function CatalogueScreen() {
       ]}
     >
       <CatalogueList
-        quotes={QUOTES}
+        quotes={quotes ?? []}
         onSelectQuote={(id) => router.push(`/catalogue/quote/${id}`)}
       />
     </View>

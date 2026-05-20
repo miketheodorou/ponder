@@ -1,22 +1,22 @@
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { getTodaysQuote } from '@/api/quotes';
 import { ChevronUp, Eyebrow, PlusIcon } from '@/components';
-import { QUOTES } from '@/data/quotes';
 import { resolveFont, useTheme } from '@/theme';
-
-// Quote rendered as the day's hero. Hardcoded to the most recent for now —
-// will become "today's pick" once there's real selection logic.
-const HERO_QUOTE_ID = 'q1';
 
 export default function HomeScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const quote = QUOTES.find((q) => q.id === HERO_QUOTE_ID) ?? QUOTES[0];
+  const { data: quote } = useQuery({
+    queryKey: ['quotes', 'today'],
+    queryFn: getTodaysQuote
+  });
 
   const openCatalogue = useCallback(() => {
     router.push('/catalogue');
@@ -61,22 +61,26 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.quoteWrap}>
-        <Text
-          style={{
-            fontFamily: resolveFont({ family: 'serif', weight: '400' }),
-            fontSize: theme.fontSize.serif4xl,
-            lineHeight: theme.lineHeight.serif4xl,
-            letterSpacing: theme.letterSpacing.tightSerif,
-            color: theme.colors.textPrimary
-          }}
-        >
-          {`“${quote.text}”`}
-        </Text>
+        {quote && (
+          <Text
+            style={{
+              fontFamily: resolveFont({ family: 'serif', weight: '400' }),
+              fontSize: theme.fontSize.serif4xl,
+              lineHeight: theme.lineHeight.serif4xl,
+              letterSpacing: theme.letterSpacing.tightSerif,
+              color: theme.colors.textPrimary
+            }}
+          >
+            {`“${quote.text}”`}
+          </Text>
+        )}
       </View>
 
       <View style={styles.footer}>
         <View style={styles.attribution}>
-          <Eyebrow>{`${quote.author} · ${quote.book}`}</Eyebrow>
+          {quote && (
+            <Eyebrow>{`${quote.authorName} · ${quote.bookTitle}`}</Eyebrow>
+          )}
         </View>
         <View
           style={[

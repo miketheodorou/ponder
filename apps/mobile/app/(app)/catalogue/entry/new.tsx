@@ -1,8 +1,9 @@
+import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
+import { getQuoteById } from '@/api/quotes';
 import { JournalEntry } from '@/components';
-import { type JournalEntry as JournalEntryData, QUOTES } from '@/data/quotes';
 import { useTheme } from '@/theme';
 
 export default function NewEntryScreen() {
@@ -10,16 +11,19 @@ export default function NewEntryScreen() {
   const theme = useTheme();
   const { quoteId } = useLocalSearchParams<{ quoteId?: string }>();
 
-  const linkedQuote = quoteId
-    ? (QUOTES.find((q) => q.id === quoteId) ?? null)
-    : null;
+  const { data: linkedQuote } = useQuery({
+    queryKey: ['quotes', quoteId],
+    queryFn: () => getQuoteById(quoteId!),
+    enabled: Boolean(quoteId)
+  });
 
-  // The JournalEntry component switches into composer mode when entry.id === "new".
-  const draft: JournalEntryData = {
+  // JournalEntry flips into composer mode when entry.id === 'new'. userId
+  // isn't known on the client — it's set on the server from the session.
+  const draft = {
     id: 'new',
     quoteId: quoteId ?? '',
-    date: 'New entry',
-    body: ''
+    userId: '',
+    content: ''
   };
 
   return (
@@ -33,7 +37,7 @@ export default function NewEntryScreen() {
     >
       <JournalEntry
         entry={draft}
-        linkedQuote={linkedQuote}
+        linkedQuote={linkedQuote ?? null}
         onBack={() => router.back()}
         onSave={() => router.back()}
       />

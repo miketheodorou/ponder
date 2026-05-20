@@ -1,3 +1,4 @@
+import type { Quote } from '@ponder/db/schema';
 import { useMemo, useState } from 'react';
 import {
   Pressable,
@@ -10,14 +11,28 @@ import {
 
 import { Eyebrow } from '@/components/Eyebrow';
 import { SearchIcon } from '@/components/icons';
-import { FILTER_CHIPS, type Quote } from '@/data/quotes';
+import { FILTER_CHIPS } from '@/data/quotes';
 import { resolveFont, useTheme } from '@/theme';
 
+// In API responses `id` and `createdAt` are always present, even though
+// the schema's $inferInsert type marks them optional (they have defaults
+// at insert time). Narrow them here so the component doesn't need to
+// guard.
+type CatalogueQuote = Quote & {
+  id: string;
+  createdAt: Date | string;
+  themes: string[];
+};
+
 interface CatalogueListProps {
-  /** Quotes to render — already merged from session + seeded by the parent. */
-  quotes: Quote[];
+  quotes: CatalogueQuote[];
   onSelectQuote?: (quoteId: string) => void;
 }
+
+const DATE_FORMAT: Intl.DateTimeFormatOptions = {
+  month: 'short',
+  day: 'numeric'
+};
 
 const HORIZONTAL_GUTTER = 28;
 
@@ -169,13 +184,13 @@ export function CatalogueList({ quotes, onSelectQuote }: CatalogueListProps) {
               </Text>
               <View style={styles.meta}>
                 <Eyebrow size={theme.fontSize.eyebrowSm}>
-                  {`${quote.author} · ${quote.book}`}
+                  {`${quote.authorName} · ${quote.bookTitle}`}
                 </Eyebrow>
                 <Eyebrow
                   size={theme.fontSize.eyebrowSm}
                   color={theme.colors.textFaint}
                 >
-                  {quote.date.split(',')[0]}
+                  {formatQuoteDate(quote.createdAt)}
                 </Eyebrow>
               </View>
             </Pressable>
@@ -186,27 +201,41 @@ export function CatalogueList({ quotes, onSelectQuote }: CatalogueListProps) {
   );
 }
 
-function filterQuotes(quotes: Quote[], query: string, chip: string): Quote[] {
+function filterQuotes(
+  quotes: CatalogueQuote[],
+  query: string,
+  chip: string
+): CatalogueQuote[] {
   let result = quotes;
   if (chip !== 'all' && chip !== 'recent') {
-    result = result.filter((q) => q.tags.includes(chip));
+    result = result.filter((q) => q.themes.includes(chip));
   }
   const trimmed = query.trim().toLowerCase();
   if (trimmed) {
     result = result.filter(
       (q) =>
         q.text.toLowerCase().includes(trimmed) ||
-        q.author.toLowerCase().includes(trimmed) ||
-        q.book.toLowerCase().includes(trimmed)
+        q.authorName.toLowerCase().includes(trimmed) ||
+        q.bookTitle.toLowerCase().includes(trimmed)
     );
   }
   if (chip === 'recent') {
-    // Date.parse handles the "Mar 14, 2026"-style strings used in mock data.
     result = [...result].sort(
-      (a, b) => Date.parse(b.date) - Date.parse(a.date)
+      (a, b) => toTime(b.createdAt) - toTime(a.createdAt)
     );
   }
   return result;
+}
+
+function toTime(value: Date | string | undefined): number {
+  if (!value) return 0;
+  return value instanceof Date ? value.getTime() : new Date(value).getTime();
+}
+
+function formatQuoteDate(value: Date | string | undefined): string {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  return date.toLocaleDateString(undefined, DATE_FORMAT);
 }
 
 const styles = StyleSheet.create({

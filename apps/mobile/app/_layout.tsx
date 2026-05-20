@@ -1,6 +1,7 @@
 import { ClerkProvider, useAuth } from '@clerk/expo';
 import { tokenCache } from '@clerk/expo/token-cache';
 import { ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -12,6 +13,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { registerAuthTokenGetter } from '@/api/client';
+import { queryClient } from '@/lib/query-client';
 import {
   ThemeProvider,
   fontsToLoad,
@@ -37,15 +40,17 @@ export default function RootLayout() {
       publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!}
       tokenCache={tokenCache}
     >
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <KeyboardProvider>
-          <SafeAreaProvider>
-            <ThemeProvider>
-              <ThemedShell />
-            </ThemeProvider>
-          </SafeAreaProvider>
-        </KeyboardProvider>
-      </GestureHandlerRootView>
+      <QueryClientProvider client={queryClient}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <KeyboardProvider>
+            <SafeAreaProvider>
+              <ThemeProvider>
+                <ThemedShell />
+              </ThemeProvider>
+            </SafeAreaProvider>
+          </KeyboardProvider>
+        </GestureHandlerRootView>
+      </QueryClientProvider>
     </ClerkProvider>
   );
 }
@@ -53,9 +58,15 @@ export default function RootLayout() {
 function ThemedShell() {
   const theme = useTheme();
   const navigationTheme = useMemo(() => toNavigationTheme(theme), [theme]);
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isSignedIn, isLoaded, getToken } = useAuth();
   const [fontsLoaded, fontError] = useFonts(fontsToLoad);
   const { ready: appearanceReady } = useAppearance();
+
+  // Bind Clerk's session token to the API client so authed requests pick
+  // up the latest token on every fetch (Clerk handles refresh internally).
+  useEffect(() => {
+    registerAuthTokenGetter(() => getToken());
+  }, [getToken]);
 
   // Fonts can fall back if they error — we just don't want to block on them
   // forever. Clerk's `isLoaded` has no error sibling; if its init hangs the

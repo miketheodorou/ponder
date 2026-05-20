@@ -1,3 +1,4 @@
+import type { JournalEntry as JournalEntryRow, Quote } from "@ponder/db/schema";
 import { useState } from "react";
 import {
   Pressable,
@@ -10,20 +11,29 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 import { Eyebrow } from "@/components/Eyebrow";
 import { NavHeader } from "@/components/NavHeader";
-import {
-  type JournalEntry as JournalEntryData,
-  type Quote,
-} from "@/data/quotes";
 import { resolveFont, useTheme } from "@/theme";
+
+// In API responses id/createdAt are always present; new.tsx passes a
+// synthetic draft with id === 'new' to flip the composer mode on.
+type JournalEntryData = JournalEntryRow & {
+  id: string;
+  createdAt?: Date | string;
+};
 
 interface JournalEntryProps {
   entry: JournalEntryData | null;
-  /** The quote this entry links to — resolved by the parent so session quotes work. */
+  /** Quote this entry links to — fetched separately by the parent. */
   linkedQuote: Quote | null;
   onBack: () => void;
   /** Called with the trimmed body when the user taps Save. New mode only. */
   onSave?: (body: string) => void;
 }
+
+const ENTRY_DATE_FORMAT: Intl.DateTimeFormatOptions = {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+};
 
 const HORIZONTAL_GUTTER = 28;
 
@@ -48,9 +58,15 @@ export function JournalEntry({
 }: JournalEntryProps) {
   const theme = useTheme();
   const isNew = entry?.id === "new";
-  const [body, setBody] = useState(entry?.body ?? "");
+  const [body, setBody] = useState(entry?.content ?? "");
 
   if (!entry) return null;
+
+  const dateLabel = isNew
+    ? "New entry"
+    : entry.createdAt
+      ? formatDate(entry.createdAt)
+      : "";
 
   const canSave = body.trim().length > 0;
 
@@ -109,12 +125,12 @@ export function JournalEntry({
               size={theme.fontSize.eyebrowXs}
               color={theme.colors.textFaint}
             >
-              {`${linkedQuote.author} · ${linkedQuote.book}`}
+              {`${linkedQuote.authorName} · ${linkedQuote.bookTitle}`}
             </Eyebrow>
           </View>
         )}
 
-        <Eyebrow style={styles.dateLabel}>{entry.date}</Eyebrow>
+        <Eyebrow style={styles.dateLabel}>{dateLabel}</Eyebrow>
 
         {isNew ? (
           <TextInput
@@ -146,12 +162,17 @@ export function JournalEntry({
               color: theme.colors.textPrimary,
             }}
           >
-            {entry.body}
+            {entry.content}
           </Text>
         )}
       </KeyboardAwareScrollView>
     </View>
   );
+}
+
+function formatDate(value: Date | string): string {
+  const date = value instanceof Date ? value : new Date(value);
+  return date.toLocaleDateString(undefined, ENTRY_DATE_FORMAT);
 }
 
 const styles = StyleSheet.create({
