@@ -2,6 +2,8 @@ import { and, desc, eq, getTableColumns, sql } from 'drizzle-orm';
 import { db } from './index';
 import { journalEntries, quotes, quoteThemes, themes } from './schema';
 import type {
+  CreateJournalEntryInput,
+  CreateQuoteInput,
   UpdateJournalEntryInput,
   UpdateQuoteInput
 } from './validators';
@@ -90,6 +92,35 @@ function definedEntries<T extends object>(input: T) {
   return Object.fromEntries(
     Object.entries(input).filter(([, v]) => v !== undefined)
   );
+}
+
+export async function createQuote(
+  userId: string,
+  fields: CreateQuoteInput
+) {
+  const rows = await db
+    .insert(quotes)
+    .values({ ...fields, userId })
+    .returning(quoteColumns);
+  return rows[0];
+}
+
+export async function createJournalEntry(
+  userId: string,
+  quoteId: string,
+  fields: CreateJournalEntryInput
+) {
+  const parentQuote = await db
+    .select({ id: quotes.id })
+    .from(quotes)
+    .where(and(eq(quotes.id, quoteId), eq(quotes.userId, userId)))
+    .then((rows) => rows[0]);
+  if (!parentQuote) return undefined;
+  const rows = await db
+    .insert(journalEntries)
+    .values({ ...fields, userId, quoteId })
+    .returning(journalEntryColumns);
+  return rows[0];
 }
 
 export async function updateQuote(

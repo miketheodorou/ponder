@@ -1,11 +1,17 @@
 import {
+  createJournalEntry,
+  createQuote,
   deleteQuote,
   getQuoteById,
   getTodaysQuote,
   getUserQuotes,
   updateQuote
 } from '@ponder/db/queries';
-import { updateQuoteSchema } from '@ponder/db/validators';
+import {
+  createJournalEntrySchema,
+  createQuoteSchema,
+  updateQuoteSchema
+} from '@ponder/db/validators';
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import type { AuthedEnv } from '../../types';
@@ -15,6 +21,11 @@ const quotesRouter = new Hono<AuthedEnv>();
 quotesRouter.get('/', async (c) => {
   const quotesData = await getUserQuotes(c.var.userId);
   return c.json({ data: quotesData });
+});
+
+quotesRouter.post('/', zValidator('json', createQuoteSchema), async (c) => {
+  const created = await createQuote(c.var.userId, c.req.valid('json'));
+  return c.json({ data: created }, 201);
 });
 
 quotesRouter.get('/today', async (c) => {
@@ -43,5 +54,19 @@ quotesRouter.delete('/:id', async (c) => {
   if (!deleted) return c.json({ error: 'Not found' }, 404);
   return c.json({ data: deleted });
 });
+
+quotesRouter.post(
+  '/:quoteId/journal-entries',
+  zValidator('json', createJournalEntrySchema),
+  async (c) => {
+    const created = await createJournalEntry(
+      c.var.userId,
+      c.req.param('quoteId'),
+      c.req.valid('json')
+    );
+    if (!created) return c.json({ error: 'Not found' }, 404);
+    return c.json({ data: created }, 201);
+  }
+);
 
 export default quotesRouter;
