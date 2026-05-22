@@ -1,4 +1,9 @@
-import { getJournalEntryById } from '@ponder/db/queries';
+import {
+  getJournalEntryById,
+  updateJournalEntry
+} from '@ponder/db/queries';
+import { updateJournalEntrySchema } from '@ponder/db/validators';
+import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import type { AuthedEnv } from '../../types';
 
@@ -9,5 +14,19 @@ journalEntriesRouter.get('/:id', async (c) => {
   const journalEntry = await getJournalEntryById(id);
   return c.json({ data: journalEntry });
 });
+
+journalEntriesRouter.put(
+  '/:id',
+  zValidator('json', updateJournalEntrySchema),
+  async (c) => {
+    const updated = await updateJournalEntry(
+      c.req.param('id'),
+      c.var.userId,
+      c.req.valid('json')
+    );
+    if (!updated) return c.json({ error: 'Not found' }, 404);
+    return c.json({ data: updated });
+  }
+);
 
 export default journalEntriesRouter;

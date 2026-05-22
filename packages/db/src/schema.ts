@@ -16,7 +16,11 @@ export const quotes = pgTable('quotes', {
   bookTitle: text('book_title').notNull(),
   authorName: text('author_name').notNull(),
   pageNumber: integer('page_number'),
-  createdAt: timestamp('created_at').defaultNow().notNull()
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date())
 });
 
 export const journalEntries = pgTable('journal_entries', {
@@ -26,7 +30,11 @@ export const journalEntries = pgTable('journal_entries', {
     .references(() => quotes.id, { onDelete: 'cascade' }),
   userId: text('user_id').notNull(),
   content: text('content').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull()
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date())
 });
 
 export const themes = pgTable(

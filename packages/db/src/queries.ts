@@ -1,6 +1,10 @@
-import { desc, eq, getTableColumns, sql } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, sql } from 'drizzle-orm';
 import { db } from './index';
 import { journalEntries, quotes, quoteThemes, themes } from './schema';
+import type {
+  UpdateJournalEntryInput,
+  UpdateQuoteInput
+} from './validators';
 
 const { userId: _userId, ...quoteColumns } = getTableColumns(quotes);
 const { userId: _userId2, ...journalEntryColumns } =
@@ -80,4 +84,57 @@ export function getUserQuotes(userId: string) {
     .leftJoin(themes, eq(themes.id, quoteThemes.themeId))
     .where(eq(quotes.userId, userId))
     .groupBy(quotes.id);
+}
+
+function definedEntries<T extends object>(input: T) {
+  return Object.fromEntries(
+    Object.entries(input).filter(([, v]) => v !== undefined)
+  );
+}
+
+export async function updateQuote(
+  id: string,
+  userId: string,
+  fields: UpdateQuoteInput
+) {
+  const patch = definedEntries(fields);
+  const where = and(eq(quotes.id, id), eq(quotes.userId, userId));
+  if (Object.keys(patch).length === 0) {
+    return db
+      .select(quoteColumns)
+      .from(quotes)
+      .where(where)
+      .then((rows) => rows[0]);
+  }
+  const rows = await db
+    .update(quotes)
+    .set(patch)
+    .where(where)
+    .returning(quoteColumns);
+  return rows[0];
+}
+
+export async function updateJournalEntry(
+  id: string,
+  userId: string,
+  fields: UpdateJournalEntryInput
+) {
+  const patch = definedEntries(fields);
+  const where = and(
+    eq(journalEntries.id, id),
+    eq(journalEntries.userId, userId)
+  );
+  if (Object.keys(patch).length === 0) {
+    return db
+      .select(journalEntryColumns)
+      .from(journalEntries)
+      .where(where)
+      .then((rows) => rows[0]);
+  }
+  const rows = await db
+    .update(journalEntries)
+    .set(patch)
+    .where(where)
+    .returning(journalEntryColumns);
+  return rows[0];
 }
