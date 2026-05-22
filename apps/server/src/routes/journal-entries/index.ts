@@ -1,4 +1,5 @@
 import {
+  deleteJournalEntry,
   getJournalEntryById,
   updateJournalEntry
 } from '@ponder/db/queries';
@@ -28,5 +29,11 @@ journalEntriesRouter.put(
     return c.json({ data: updated });
   }
 );
+
+journalEntriesRouter.delete('/:id', async (c) => {
+  const deleted = await deleteJournalEntry(c.req.param('id'), c.var.userId);
+  if (!deleted) return c.json({ error: 'Not found' }, 404);
+  return c.json({ data: deleted });
+});
 
 export default journalEntriesRouter;

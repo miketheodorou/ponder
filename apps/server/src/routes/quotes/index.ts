@@ -1,4 +1,5 @@
 import {
+  deleteQuote,
   getQuoteById,
   getTodaysQuote,
   getUserQuotes,
@@ -35,6 +36,12 @@ quotesRouter.put('/:id', zValidator('json', updateQuoteSchema), async (c) => {
   );
   if (!updated) return c.json({ error: 'Not found' }, 404);
   return c.json({ data: updated });
+});
+
+quotesRouter.delete('/:id', async (c) => {
+  const deleted = await deleteQuote(c.req.param('id'), c.var.userId);
+  if (!deleted) return c.json({ error: 'Not found' }, 404);
+  return c.json({ data: deleted });
 });
 
 export default quotesRouter;

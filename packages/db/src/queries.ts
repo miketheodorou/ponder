@@ -138,3 +138,21 @@ export async function updateJournalEntry(
     .returning(journalEntryColumns);
   return rows[0];
 }
+
+export async function deleteQuote(id: string, userId: string) {
+  const rows = await db
+    .delete(quotes)
+    .where(and(eq(quotes.id, id), eq(quotes.userId, userId)))
+    .returning(quoteColumns);
+  return rows[0];
+}
+
+export async function deleteJournalEntry(id: string, userId: string) {
+  const rows = await db
+    .delete(journalEntries)
+    .where(
+      and(eq(journalEntries.id, id), eq(journalEntries.userId, userId))
+    )
+    .returning(journalEntryColumns);
+  return rows[0];
+}
