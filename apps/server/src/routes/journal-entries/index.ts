@@ -13,6 +13,7 @@ const journalEntriesRouter = new Hono<AuthedEnv>();
 journalEntriesRouter.get('/:id', async (c) => {
   const id = c.req.param('id');
   const journalEntry = await getJournalEntryById(id);
+  if (!journalEntry) return c.json({ error: 'Not found' }, 404);
   return c.json({ data: journalEntry });
 });
 

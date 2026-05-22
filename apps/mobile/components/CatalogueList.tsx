@@ -1,18 +1,18 @@
-import type { Quote } from '@ponder/db/schema';
-import { useMemo, useState } from 'react';
+import type { Quote } from "@ponder/db/schema";
+import { useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  View
-} from 'react-native';
+  View,
+} from "react-native";
 
-import { Eyebrow } from '@/components/Eyebrow';
-import { SearchIcon } from '@/components/icons';
-import { FILTER_CHIPS } from '@/data/quotes';
-import { resolveFont, useTheme } from '@/theme';
+import { Eyebrow } from "@/components/Eyebrow";
+import { PlusIcon, SearchIcon } from "@/components/icons";
+import { FILTER_CHIPS } from "@/data/quotes";
+import { resolveFont, useTheme } from "@/theme";
 
 // In API responses `id` and `createdAt` are always present, even though
 // the schema's $inferInsert type marks them optional (they have defaults
@@ -27,24 +27,31 @@ type CatalogueQuote = Quote & {
 interface CatalogueListProps {
   quotes: CatalogueQuote[];
   onSelectQuote?: (quoteId: string) => void;
+  onCapture?: () => void;
 }
 
 const DATE_FORMAT: Intl.DateTimeFormatOptions = {
-  month: 'short',
-  day: 'numeric'
+  month: "short",
+  day: "numeric",
 };
 
 const HORIZONTAL_GUTTER = 28;
 
-export function CatalogueList({ quotes, onSelectQuote }: CatalogueListProps) {
+export function CatalogueList({
+  quotes,
+  onSelectQuote,
+  onCapture,
+}: CatalogueListProps) {
   const theme = useTheme();
-  const [query, setQuery] = useState('');
-  const [activeChip, setActiveChip] = useState<string>('all');
+  const [query, setQuery] = useState("");
+  const [activeChip, setActiveChip] = useState<string>("all");
 
   const filtered = useMemo(
     () => filterQuotes(quotes, query, activeChip),
-    [quotes, query, activeChip]
+    [quotes, query, activeChip],
   );
+
+  const isEmpty = quotes.length === 0;
 
   return (
     <View style={styles.root}>
@@ -52,11 +59,11 @@ export function CatalogueList({ quotes, onSelectQuote }: CatalogueListProps) {
         <View style={styles.titleRow}>
           <Text
             style={{
-              fontFamily: resolveFont({ family: 'serif', weight: '400' }),
+              fontFamily: resolveFont({ family: "serif", weight: "400" }),
               fontSize: theme.fontSize.serif4xl,
               lineHeight: theme.lineHeight.serif4xl,
               letterSpacing: theme.letterSpacing.tightSerif,
-              color: theme.colors.textPrimary
+              color: theme.colors.textPrimary,
             }}
           >
             Catalogue
@@ -69,134 +76,205 @@ export function CatalogueList({ quotes, onSelectQuote }: CatalogueListProps) {
             styles.searchWrap,
             {
               backgroundColor: theme.colors.backgroundRaised2,
-              borderColor: theme.colors.hairline
-            }
+              borderColor: theme.colors.hairline,
+              opacity: isEmpty ? 0.5 : 1,
+            },
           ]}
         >
           <SearchIcon size={theme.icon.sm} color={theme.colors.textMuted} />
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder='Search quotes, authors, books'
+            placeholder="Search quotes, authors, books"
             placeholderTextColor={theme.colors.textFaint}
-            autoCapitalize='none'
+            autoCapitalize="none"
             autoCorrect={false}
-            returnKeyType='search'
+            returnKeyType="search"
+            editable={!isEmpty}
             style={[
               styles.searchInput,
               {
                 color: theme.colors.textPrimary,
-                fontFamily: resolveFont({ family: 'sans', weight: '300' }),
-                fontSize: theme.fontSize.bodyLg
-              }
+                fontFamily: resolveFont({ family: "sans", weight: "300" }),
+                fontSize: theme.fontSize.bodyLg,
+              },
             ]}
           />
         </View>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsContent}
-        style={styles.chipsScroll}
-      >
-        {FILTER_CHIPS.map((chip) => {
-          const active = activeChip === chip.id;
-          return (
-            <Pressable
-              key={chip.id}
-              onPress={() => setActiveChip(chip.id)}
-              accessibilityRole='button'
-              accessibilityState={{ selected: active }}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: active
-                    ? theme.colors.textPrimary
-                    : 'transparent',
-                  borderColor: active
-                    ? theme.colors.textPrimary
-                    : theme.colors.hairlineStrong
-                }
-              ]}
-            >
-              <Text
-                style={{
-                  fontFamily: resolveFont({ family: 'sans', weight: '400' }),
-                  fontSize: theme.fontSize.bodySm,
-                  color: active
-                    ? theme.colors.background
-                    : theme.colors.textMuted,
-                  letterSpacing:
-                    chip.id === 'all' || chip.id === 'recent' ? 0.72 : 0.24
-                }}
-              >
-                {chip.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-        style={styles.list}
-        keyboardShouldPersistTaps='handled'
-      >
-        {filtered.length === 0 ? (
+      {isEmpty ? (
+        <View style={styles.emptyWrap}>
           <Text
             style={{
-              fontFamily: resolveFont({ family: 'sans', weight: '400' }),
-              fontSize: theme.fontSize.bodyMd,
-              color: theme.colors.textMuted,
-              textAlign: 'center',
-              paddingVertical: theme.spacing.massive
+              fontFamily: resolveFont({
+                family: "serif",
+                weight: "400",
+                italic: true,
+              }),
+              fontSize: 19,
+              lineHeight: 28,
+              letterSpacing: theme.letterSpacing.tightSerif,
+              color: theme.colors.textPrimary,
+              textAlign: "center",
+              marginBottom: 12,
             }}
           >
-            No quotes match.
+            Your catalogue starts here.
           </Text>
-        ) : (
-          filtered.map((quote, index) => (
-            <Pressable
-              key={quote.id}
-              onPress={() => onSelectQuote?.(quote.id)}
-              accessibilityRole='button'
-              style={[
-                styles.row,
-                index > 0 && {
-                  borderTopWidth: StyleSheet.hairlineWidth,
-                  borderTopColor: theme.colors.hairline
-                }
-              ]}
+          <Text
+            style={{
+              fontFamily: resolveFont({ family: "sans", weight: "300" }),
+              fontSize: theme.fontSize.bodyMd,
+              lineHeight: theme.lineHeight.bodyLg,
+              color: theme.colors.textMuted,
+              textAlign: "center",
+              maxWidth: 280,
+              marginBottom: 28,
+            }}
+          >
+            Save a passage and it lands here.
+          </Text>
+          <Pressable
+            onPress={onCapture}
+            accessibilityRole="button"
+            accessibilityLabel="Capture a quote"
+            style={({ pressed }) => [
+              styles.capturePill,
+              {
+                backgroundColor: theme.colors.textPrimary,
+                borderRadius: theme.radius.pill,
+                opacity: pressed ? 0.88 : 1,
+              },
+            ]}
+          >
+            <PlusIcon size={12} color={theme.colors.background} />
+            <Text
+              style={{
+                fontFamily: resolveFont({ family: "sans", weight: "500" }),
+                fontSize: theme.fontSize.eyebrowMd,
+                color: theme.colors.background,
+                letterSpacing: theme.letterSpacing.uppercaseMd,
+                textTransform: "uppercase",
+              }}
             >
+              Capture a quote
+            </Text>
+          </Pressable>
+        </View>
+      ) : (
+        <>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipsContent}
+            style={styles.chipsScroll}
+          >
+            {FILTER_CHIPS.map((chip) => {
+              const active = activeChip === chip.id;
+              return (
+                <Pressable
+                  key={chip.id}
+                  onPress={() => setActiveChip(chip.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: active
+                        ? theme.colors.textPrimary
+                        : "transparent",
+                      borderColor: active
+                        ? theme.colors.textPrimary
+                        : theme.colors.hairlineStrong,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      fontFamily: resolveFont({
+                        family: "sans",
+                        weight: "400",
+                      }),
+                      fontSize: theme.fontSize.bodySm,
+                      color: active
+                        ? theme.colors.background
+                        : theme.colors.textMuted,
+                      letterSpacing:
+                        chip.id === "all" || chip.id === "recent" ? 0.72 : 0.24,
+                    }}
+                  >
+                    {chip.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+            style={styles.list}
+            keyboardShouldPersistTaps="handled"
+          >
+            {filtered.length === 0 ? (
               <Text
-                numberOfLines={2}
                 style={{
-                  fontFamily: resolveFont({ family: 'serif', weight: '400' }),
-                  fontSize: theme.fontSize.serifLg,
-                  lineHeight: theme.lineHeight.serifLg,
-                  color: theme.colors.textPrimary,
-                  marginBottom: 12
+                  fontFamily: resolveFont({ family: "sans", weight: "400" }),
+                  fontSize: theme.fontSize.bodyMd,
+                  color: theme.colors.textMuted,
+                  textAlign: "center",
+                  paddingVertical: theme.spacing.massive,
                 }}
               >
-                {`“${quote.text}”`}
+                No quotes match.
               </Text>
-              <View style={styles.meta}>
-                <Eyebrow size={theme.fontSize.eyebrowSm}>
-                  {`${quote.authorName} · ${quote.bookTitle}`}
-                </Eyebrow>
-                <Eyebrow
-                  size={theme.fontSize.eyebrowSm}
-                  color={theme.colors.textFaint}
+            ) : (
+              filtered.map((quote, index) => (
+                <Pressable
+                  key={quote.id}
+                  onPress={() => onSelectQuote?.(quote.id)}
+                  accessibilityRole="button"
+                  style={[
+                    styles.row,
+                    index > 0 && {
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderTopColor: theme.colors.hairline,
+                    },
+                  ]}
                 >
-                  {formatQuoteDate(quote.createdAt)}
-                </Eyebrow>
-              </View>
-            </Pressable>
-          ))
-        )}
-      </ScrollView>
+                  <Text
+                    numberOfLines={2}
+                    style={{
+                      fontFamily: resolveFont({
+                        family: "serif",
+                        weight: "400",
+                      }),
+                      fontSize: theme.fontSize.serifLg,
+                      lineHeight: theme.lineHeight.serifLg,
+                      color: theme.colors.textPrimary,
+                      marginBottom: 12,
+                    }}
+                  >
+                    {`“${quote.text}”`}
+                  </Text>
+                  <View style={styles.meta}>
+                    <Eyebrow size={theme.fontSize.eyebrowSm}>
+                      {`${quote.authorName} · ${quote.bookTitle}`}
+                    </Eyebrow>
+                    <Eyebrow
+                      size={theme.fontSize.eyebrowSm}
+                      color={theme.colors.textFaint}
+                    >
+                      {formatQuoteDate(quote.createdAt)}
+                    </Eyebrow>
+                  </View>
+                </Pressable>
+              ))
+            )}
+          </ScrollView>
+        </>
+      )}
     </View>
   );
 }
@@ -204,10 +282,10 @@ export function CatalogueList({ quotes, onSelectQuote }: CatalogueListProps) {
 function filterQuotes(
   quotes: CatalogueQuote[],
   query: string,
-  chip: string
+  chip: string,
 ): CatalogueQuote[] {
   let result = quotes;
-  if (chip !== 'all' && chip !== 'recent') {
+  if (chip !== "all" && chip !== "recent") {
     result = result.filter((q) => q.themes.includes(chip));
   }
   const trimmed = query.trim().toLowerCase();
@@ -216,12 +294,12 @@ function filterQuotes(
       (q) =>
         q.text.toLowerCase().includes(trimmed) ||
         q.authorName.toLowerCase().includes(trimmed) ||
-        q.bookTitle.toLowerCase().includes(trimmed)
+        q.bookTitle.toLowerCase().includes(trimmed),
     );
   }
-  if (chip === 'recent') {
+  if (chip === "recent") {
     result = [...result].sort(
-      (a, b) => toTime(b.createdAt) - toTime(a.createdAt)
+      (a, b) => toTime(b.createdAt) - toTime(a.createdAt),
     );
   }
   return result;
@@ -233,66 +311,81 @@ function toTime(value: Date | string | undefined): number {
 }
 
 function formatQuoteDate(value: Date | string | undefined): string {
-  if (!value) return '';
+  if (!value) return "";
   const date = value instanceof Date ? value : new Date(value);
   return date.toLocaleDateString(undefined, DATE_FORMAT);
 }
 
 const styles = StyleSheet.create({
   root: {
-    flex: 1
+    flex: 1,
   },
   header: {
     paddingHorizontal: HORIZONTAL_GUTTER,
     paddingTop: 8,
-    paddingBottom: 18
+    paddingBottom: 18,
   },
   titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 18
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginBottom: 18,
   },
   searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     paddingHorizontal: 14,
     height: 42,
     borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth
+    borderWidth: StyleSheet.hairlineWidth,
   },
   searchInput: {
     flex: 1,
-    padding: 0
+    padding: 0,
   },
   chipsScroll: {
-    flexGrow: 0
+    flexGrow: 0,
   },
   chipsContent: {
     paddingHorizontal: HORIZONTAL_GUTTER,
     paddingBottom: 16,
-    gap: 8
+    gap: 8,
   },
   chip: {
     paddingHorizontal: 13,
     paddingVertical: 7,
     borderRadius: 100,
-    borderWidth: StyleSheet.hairlineWidth
+    borderWidth: StyleSheet.hairlineWidth,
   },
   list: {
-    flex: 1
+    flex: 1,
   },
   listContent: {
     paddingHorizontal: HORIZONTAL_GUTTER,
-    paddingBottom: 40
+    paddingBottom: 40,
   },
   row: {
-    paddingVertical: 20
+    paddingVertical: 20,
   },
   meta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  }
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  emptyWrap: {
+    flex: 1,
+    paddingHorizontal: HORIZONTAL_GUTTER + 12,
+    paddingBottom: 28,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  capturePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 13,
+    paddingLeft: 18,
+    paddingRight: 22,
+  },
 });

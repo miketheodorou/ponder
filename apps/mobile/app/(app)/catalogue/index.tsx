@@ -17,14 +17,12 @@ export default function CatalogueScreen() {
 
   return (
     <View
-      style={[
-        styles.root,
-        { backgroundColor: theme.colors.backgroundRaised },
-      ]}
+      style={[styles.root, { backgroundColor: theme.colors.backgroundRaised }]}
     >
       <CatalogueList
         quotes={quotes ?? []}
         onSelectQuote={(id) => router.push(`/catalogue/quote/${id}`)}
+        onCapture={() => router.replace("/capture")}
       />
     </View>
   );

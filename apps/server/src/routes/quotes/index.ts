@@ -30,12 +30,13 @@ quotesRouter.post('/', zValidator('json', createQuoteSchema), async (c) => {
 
 quotesRouter.get('/today', async (c) => {
   const quote = await getTodaysQuote(c.var.userId);
-  return c.json({ data: quote });
+  return c.json({ data: quote ?? null });
 });
 
 quotesRouter.get('/:id', async (c) => {
   const id = c.req.param('id');
   const quote = await getQuoteById(id);
+  if (!quote) return c.json({ error: 'Not found' }, 404);
   return c.json({ data: quote });
 });
 

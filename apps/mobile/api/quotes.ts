@@ -19,7 +19,7 @@ export function getTodaysQuote() {
   return apiClient
     .get('quotes/today')
     .json<
-      ApiResponse<Pick<WireQuote, 'id' | 'text' | 'bookTitle' | 'authorName'>>
+      ApiResponse<Pick<WireQuote, 'id' | 'text' | 'bookTitle' | 'authorName'> | null>
     >()
     .then((res) => res.data);
 }
