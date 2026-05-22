@@ -46,10 +46,8 @@ const ENTRY_DATE_FORMAT: Intl.DateTimeFormatOptions = {
 };
 
 /**
- * Read view of a quote with two ephemeral edit affordances: tags can be
- * appended via an inline input on the "+ tag" pill, and notes can be edited
- * by tapping the body. Edits live in component state — persistence for
- * themes/notes isn't wired through to the server yet.
+ * Read view of a quote. Tags can be appended via an inline input on the
+ * "+ tag" pill — edits live in component state until persistence lands.
  */
 export function QuoteDetail({
   quote,
@@ -62,10 +60,6 @@ export function QuoteDetail({
   const [tags, setTags] = useState<string[]>(quote?.themes ?? []);
   const [editingTag, setEditingTag] = useState(false);
   const [tagDraft, setTagDraft] = useState("");
-
-  // Notes have no backing column on the server yet — ephemeral until then.
-  const [notes, setNotes] = useState("");
-  const [editingNotes, setEditingNotes] = useState(false);
 
   if (!quote) return null;
 
@@ -198,71 +192,6 @@ export function QuoteDetail({
               </Pressable>
             )}
           </View>
-        </View>
-
-        <View style={styles.section}>
-          <Eyebrow size={theme.fontSize.eyebrowSm} style={styles.sectionLabel}>
-            Notes
-          </Eyebrow>
-          {editingNotes ? (
-            <TextInput
-              value={notes}
-              onChangeText={setNotes}
-              onBlur={() => setEditingNotes(false)}
-              autoFocus
-              multiline
-              placeholder="Add notes…"
-              placeholderTextColor={theme.colors.textFaint}
-              textAlignVertical="top"
-              style={{
-                // Edit mode is upright serif so the caret + selection feel
-                // unambiguous; display flips back to italic on blur.
-                fontFamily: resolveFont({ family: "serif", weight: "400" }),
-                fontSize: theme.fontSize.serifMd,
-                lineHeight: theme.lineHeight.serifMd,
-                color: theme.colors.textPrimary,
-                padding: 0,
-                minHeight: theme.lineHeight.serifMd * 2,
-              }}
-            />
-          ) : (
-            <Pressable
-              onPress={() => setEditingNotes(true)}
-              accessibilityRole="button"
-              accessibilityLabel={notes ? "Edit notes" : "Add notes"}
-            >
-              {notes ? (
-                <Text
-                  style={{
-                    fontFamily: resolveFont({
-                      family: "serif",
-                      weight: "400",
-                      italic: true,
-                    }),
-                    fontSize: theme.fontSize.serifMd,
-                    lineHeight: theme.lineHeight.serifMd,
-                    color: theme.colors.textPrimary,
-                  }}
-                >
-                  {notes}
-                </Text>
-              ) : (
-                <Text
-                  style={{
-                    fontFamily: resolveFont({
-                      family: "sans",
-                      weight: "300",
-                      italic: true,
-                    }),
-                    fontSize: theme.fontSize.bodyMd,
-                    color: theme.colors.textFaint,
-                  }}
-                >
-                  Add notes…
-                </Text>
-              )}
-            </Pressable>
-          )}
         </View>
 
         <View>

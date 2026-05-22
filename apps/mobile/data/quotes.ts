@@ -10,7 +10,6 @@ export interface Quote {
   /** Human-readable saved date, as it should be rendered in the UI. */
   date: string;
   tags: string[];
-  notes: string;
   /** Linked journal entry IDs, in chronological order. */
   entries: string[];
 }
@@ -36,8 +35,6 @@ export const QUOTES: Quote[] = [
     page: 6,
     date: "Mar 14, 2026",
     tags: ["meaning", "suffering"],
-    notes:
-      'Came back to this after a long week. The "why" feels less abstract now — it isn\'t a single answer but a posture.',
     entries: ["j1", "j2"],
   },
   {
@@ -48,7 +45,6 @@ export const QUOTES: Quote[] = [
     page: 144,
     date: "Mar 9, 2026",
     tags: ["resilience"],
-    notes: "",
     entries: ["j3"],
   },
   {
@@ -59,7 +55,6 @@ export const QUOTES: Quote[] = [
     page: 89,
     date: "Feb 28, 2026",
     tags: ["stoicism", "agency"],
-    notes: "",
     entries: [],
   },
   {
@@ -70,8 +65,6 @@ export const QUOTES: Quote[] = [
     page: 61,
     date: "Feb 19, 2026",
     tags: ["anxiety", "freedom"],
-    notes:
-      "The clearest articulation I've read. The dizziness isn't a malfunction; it's the texture of choice itself.",
     entries: ["j4"],
   },
   {
@@ -82,7 +75,6 @@ export const QUOTES: Quote[] = [
     page: 23,
     date: "Feb 11, 2026",
     tags: ["stoicism"],
-    notes: "",
     entries: [],
   },
   {
@@ -93,7 +85,6 @@ export const QUOTES: Quote[] = [
     page: 38,
     date: "Jan 30, 2026",
     tags: ["examination"],
-    notes: "",
     entries: [],
   },
   {
@@ -104,7 +95,6 @@ export const QUOTES: Quote[] = [
     page: 104,
     date: "Jan 18, 2026",
     tags: ["meaning", "agency"],
-    notes: "",
     entries: ["j5"],
   },
   {
@@ -115,7 +105,6 @@ export const QUOTES: Quote[] = [
     page: 123,
     date: "Jan 6, 2026",
     tags: ["meaning", "absurd"],
-    notes: "",
     entries: [],
   },
 ];

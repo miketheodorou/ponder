@@ -35,7 +35,7 @@ export default function CaptureConfirmScreen() {
           Ready to save
         </Text>
         <Eyebrow size={theme.fontSize.eyebrowSm}>
-          You can add tags and notes later.
+          You can add tags later.
         </Eyebrow>
       </View>
 
