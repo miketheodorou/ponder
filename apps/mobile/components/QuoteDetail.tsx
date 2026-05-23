@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Eyebrow } from "@/components/Eyebrow";
 import { ChevronRight } from "@/components/icons";
 import { NavHeader } from "@/components/NavHeader";
@@ -32,6 +33,11 @@ interface QuoteDetailProps {
   onBack: () => void;
   onOpenEntry?: (entryId: string) => void;
   onNewEntry?: () => void;
+  /**
+   * Fired after the user confirms removal of the quote via the "Remove
+   * quote" affordance at the bottom of this screen. API wiring lands later.
+   */
+  onDelete?: () => void;
 }
 
 const HORIZONTAL_GUTTER = 28;
@@ -54,12 +60,14 @@ export function QuoteDetail({
   onBack,
   onOpenEntry,
   onNewEntry,
+  onDelete,
 }: QuoteDetailProps) {
   const theme = useTheme();
 
   const [tags, setTags] = useState<string[]>(quote?.themes ?? []);
   const [editingTag, setEditingTag] = useState(false);
   const [tagDraft, setTagDraft] = useState("");
+  const [confirmDeleteQuote, setConfirmDeleteQuote] = useState(false);
 
   if (!quote) return null;
 
@@ -79,6 +87,7 @@ export function QuoteDetail({
       <NavHeader onBack={onBack} label="Catalogue" />
 
       <KeyboardAwareScrollView
+        style={styles.scroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -288,6 +297,43 @@ export function QuoteDetail({
           </Pressable>
         </View>
       </KeyboardAwareScrollView>
+
+      <View
+        style={[
+          styles.removeBar,
+          {
+            backgroundColor: theme.colors.backgroundRaised,
+            borderTopColor: theme.colors.hairline,
+          },
+        ]}
+      >
+        <Pressable
+          onPress={() => setConfirmDeleteQuote(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Remove quote"
+          hitSlop={8}
+          style={styles.removeButton}
+        >
+          <Eyebrow
+            size={theme.fontSize.eyebrowSm}
+            color={theme.colors.textFaint}
+          >
+            Remove quote
+          </Eyebrow>
+        </Pressable>
+      </View>
+
+      <ConfirmDialog
+        visible={confirmDeleteQuote}
+        title="Remove this quote?"
+        message="This will also remove any linked journal entries. This can't be undone."
+        confirmLabel="Remove"
+        onCancel={() => setConfirmDeleteQuote(false)}
+        onConfirm={() => {
+          setConfirmDeleteQuote(false);
+          onDelete?.();
+        }}
+      />
     </View>
   );
 }
@@ -328,6 +374,9 @@ function MetaRow({ label, value }: MetaRowProps) {
 
 const styles = StyleSheet.create({
   root: {
+    flex: 1,
+  },
+  scroll: {
     flex: 1,
   },
   scrollContent: {
@@ -397,5 +446,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "transparent",
+  },
+  removeBar: {
+    flexShrink: 0,
+    paddingTop: 14,
+    paddingBottom: 32,
+    paddingHorizontal: HORIZONTAL_GUTTER,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  removeButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
   },
 });

@@ -19,6 +19,9 @@ export const ColorsDark = {
   hairlineStrong: "rgba(237, 232, 221, 0.14)",
 
   scrim: "rgba(0, 0, 0, 0.35)",
+  scrimStrong: "rgba(0, 0, 0, 0.55)",
+
+  destructive: "#E0746B",
 } as const;
 
 export const ColorsLight = {
@@ -34,6 +37,9 @@ export const ColorsLight = {
   hairlineStrong: "rgba(26, 25, 22, 0.14)",
 
   scrim: "rgba(0, 0, 0, 0.25)",
+  scrimStrong: "rgba(0, 0, 0, 0.45)",
+
+  destructive: "#E0746B",
 } as const;
 
 export type ColorScheme = {
@@ -46,6 +52,8 @@ export type ColorScheme = {
   hairline: string;
   hairlineStrong: string;
   scrim: string;
+  scrimStrong: string;
+  destructive: string;
 };
 
 // ─────────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 export { CatalogueList } from "./CatalogueList";
 export { CodeInput } from "./CodeInput";
+export { ConfirmDialog } from "./ConfirmDialog";
 export { Eyebrow } from "./Eyebrow";
 export { Field } from "./Field";
 export {

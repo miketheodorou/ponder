@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Eyebrow } from "@/components/Eyebrow";
 import { NavHeader } from "@/components/NavHeader";
 import { resolveFont, useTheme } from "@/theme";
@@ -27,6 +28,11 @@ interface JournalEntryProps {
   onBack: () => void;
   /** Called with the trimmed body when the user taps Save. New mode only. */
   onSave?: (body: string) => void;
+  /**
+   * Fired after the user confirms removal of this entry via the "Remove
+   * entry" affordance pinned to the bottom. API wiring lands later.
+   */
+  onDelete?: () => void;
 }
 
 const ENTRY_DATE_FORMAT: Intl.DateTimeFormatOptions = {
@@ -55,10 +61,12 @@ export function JournalEntry({
   linkedQuote,
   onBack,
   onSave,
+  onDelete,
 }: JournalEntryProps) {
   const theme = useTheme();
   const isNew = entry?.id === "new";
   const [body, setBody] = useState(entry?.content ?? "");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (!entry) return null;
 
@@ -93,6 +101,7 @@ export function JournalEntry({
       <NavHeader onBack={onBack} label="Quote" right={saveAction} />
 
       <KeyboardAwareScrollView
+        style={styles.scroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -166,6 +175,45 @@ export function JournalEntry({
           </Text>
         )}
       </KeyboardAwareScrollView>
+
+      {!isNew && (
+        <View
+          style={[
+            styles.removeBar,
+            {
+              backgroundColor: theme.colors.backgroundRaised,
+              borderTopColor: theme.colors.hairline,
+            },
+          ]}
+        >
+          <Pressable
+            onPress={() => setConfirmDelete(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Remove entry"
+            hitSlop={8}
+            style={styles.removeButton}
+          >
+            <Eyebrow
+              size={theme.fontSize.eyebrowSm}
+              color={theme.colors.textFaint}
+            >
+              Remove entry
+            </Eyebrow>
+          </Pressable>
+        </View>
+      )}
+
+      <ConfirmDialog
+        visible={confirmDelete}
+        title="Remove this entry?"
+        message="This can't be undone. The linked quote stays in your catalogue."
+        confirmLabel="Remove"
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={() => {
+          setConfirmDelete(false);
+          onDelete?.();
+        }}
+      />
     </View>
   );
 }
@@ -177,6 +225,9 @@ function formatDate(value: Date | string): string {
 
 const styles = StyleSheet.create({
   root: {
+    flex: 1,
+  },
+  scroll: {
     flex: 1,
   },
   scrollContent: {
@@ -195,5 +246,18 @@ const styles = StyleSheet.create({
   bodyInput: {
     minHeight: 280,
     padding: 0,
+  },
+  removeBar: {
+    flexShrink: 0,
+    paddingTop: 14,
+    paddingBottom: 32,
+    paddingHorizontal: HORIZONTAL_GUTTER,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  removeButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
   },
 });
