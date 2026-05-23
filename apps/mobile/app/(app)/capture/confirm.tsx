@@ -1,6 +1,10 @@
+import type { CreateQuoteInput } from '@ponder/db/validators';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
+import { useWatch } from 'react-hook-form';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { createQuote } from '@/api/quotes';
 import { Eyebrow } from '@/components/Eyebrow';
 import { resolveFont, useTheme } from '@/theme';
 
@@ -12,13 +16,29 @@ const HORIZONTAL_GUTTER = 28;
 export default function CaptureConfirmScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { text, book, author, page } = useCaptureDraft();
+  const queryClient = useQueryClient();
+  const { form } = useCaptureDraft();
+  const { control, handleSubmit } = form;
+  const [text, bookTitle, authorName, pageNumber] = useWatch({
+    control,
+    name: ['text', 'bookTitle', 'authorName', 'pageNumber']
+  });
 
-  // Capture is only entered from home, so on Save we just navigate back to
-  // home. `replace` (rather than push) so the capture flow isn't left in the
-  // history stack. `router.dismiss` variants only affect the nested capture
-  // stack, not the outer modal. Persistence will land with the data layer.
-  const onSave = () => router.replace('/');
+  const createMutation = useMutation({
+    mutationFn: (input: CreateQuoteInput) => createQuote(input),
+    onSuccess: () => {
+      // Prefix-matched: catalogue list, today's quote, any cached detail.
+      queryClient.invalidateQueries({ queryKey: ['quotes'] });
+      // `replace('/')` closes the entire capture modal in one step;
+      // `router.dismiss()` would only pop the nested capture stack.
+      router.replace('/');
+    }
+  });
+
+  const onSave = handleSubmit((values) => createMutation.mutateAsync(values));
+
+  const pageDisplay =
+    pageNumber == null || Number.isNaN(pageNumber) ? '—' : String(pageNumber);
 
   return (
     <View style={styles.flex}>
@@ -61,20 +81,40 @@ export default function CaptureConfirmScreen() {
               marginBottom: 24
             }}
           >
-            {`“${text.trim() || '—'}”`}
+            {`“${(text ?? '').trim() || '—'}”`}
           </Text>
           <View
             style={[styles.divider, { backgroundColor: theme.colors.hairline }]}
           />
           <View style={styles.rows}>
-            <ConfirmRow label='Book' value={book || '—'} />
-            <ConfirmRow label='Author' value={author || '—'} />
-            <ConfirmRow label='Page' value={page || '—'} />
+            <ConfirmRow label='Book' value={bookTitle?.trim() || '—'} />
+            <ConfirmRow label='Author' value={authorName?.trim() || '—'} />
+            <ConfirmRow label='Page' value={pageDisplay} />
           </View>
         </View>
+
+        {createMutation.error ? (
+          <Text
+            style={{
+              fontFamily: resolveFont({ family: 'sans', weight: '400' }),
+              fontSize: theme.fontSize.bodySm,
+              lineHeight: 18,
+              color: theme.colors.destructive,
+              textAlign: 'center',
+              marginTop: 16
+            }}
+          >
+            Couldn&apos;t save. Try again.
+          </Text>
+        ) : null}
       </ScrollView>
 
-      <CaptureFooter primary='Save' onPrimary={onSave} />
+      <CaptureFooter
+        primary='Save'
+        onPrimary={onSave}
+        pending={createMutation.isPending}
+        disabled={createMutation.isPending}
+      />
     </View>
   );
 }

@@ -1,5 +1,8 @@
 import type { JournalEntry } from '@ponder/db/schema';
-import type { UpdateJournalEntryInput } from '@ponder/db/validators';
+import type {
+  CreateJournalEntryInput,
+  UpdateJournalEntryInput
+} from '@ponder/db/validators';
 import { apiClient } from './client';
 
 type ApiResponse<T> = { data: T };
@@ -28,6 +31,16 @@ export function deleteJournalEntry(id: string) {
 export function updateJournalEntry(id: string, input: UpdateJournalEntryInput) {
   return apiClient
     .put(`journal-entries/${id}`, { json: input })
+    .json<ApiResponse<WireJournalEntry>>()
+    .then((res) => res.data);
+}
+
+export function createJournalEntry(
+  quoteId: string,
+  input: CreateJournalEntryInput
+) {
+  return apiClient
+    .post(`quotes/${quoteId}/journal-entries`, { json: input })
     .json<ApiResponse<WireJournalEntry>>()
     .then((res) => res.data);
 }

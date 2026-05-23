@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { resolveFont, useTheme } from "@/theme";
 
@@ -6,19 +6,17 @@ interface PrimaryButtonProps {
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  /** While true, swap the label for an ActivityIndicator and ignore presses. */
+  pending?: boolean;
   /** "solid" — cream-on-dark fill (default). "outline" — transparent w/ hairline. */
   variant?: "solid" | "outline";
 }
 
-/**
- * PrimaryButton — full-width pill CTA used for "Sign in", "Save", "Next".
- * The pressed state dims the entire pill rather than swapping colors so the
- * shape stays still under the finger.
- */
 export function PrimaryButton({
   label,
   onPress,
   disabled = false,
+  pending = false,
   variant = "solid",
 }: PrimaryButtonProps) {
   const theme = useTheme();
@@ -30,16 +28,18 @@ export function PrimaryButton({
   const disabledBg = isOutline ? "transparent" : theme.colors.backgroundRaised2;
   const disabledFg = theme.colors.textFaint;
 
+  const blocked = disabled || pending;
+
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled }}
-      onPress={disabled ? undefined : onPress}
-      disabled={disabled}
+      accessibilityState={{ disabled: blocked, busy: pending }}
+      onPress={blocked ? undefined : onPress}
+      disabled={blocked}
       style={({ pressed }) => [
         styles.pressable,
         {
-          opacity: pressed && !disabled ? 0.88 : 1,
+          opacity: pressed && !blocked ? 0.88 : 1,
         },
       ]}
     >
@@ -47,24 +47,28 @@ export function PrimaryButton({
         style={[
           styles.pill,
           {
-            backgroundColor: disabled ? disabledBg : fillBg,
+            backgroundColor: disabled && !pending ? disabledBg : fillBg,
             borderRadius: theme.radius.pill,
             borderWidth: isOutline ? theme.borderWidth.hairline : 0,
             borderColor: isOutline ? theme.colors.hairlineStrong : "transparent",
           },
         ]}
       >
-        <Text
-          style={{
-            fontFamily: resolveFont({ family: "sans", weight: "500" }),
-            fontSize: theme.fontSize.bodySm,
-            color: disabled ? disabledFg : fillFg,
-            letterSpacing: theme.letterSpacing.uppercaseMd,
-            textTransform: "uppercase",
-          }}
-        >
-          {label}
-        </Text>
+        {pending ? (
+          <ActivityIndicator color={fillFg} size="small" />
+        ) : (
+          <Text
+            style={{
+              fontFamily: resolveFont({ family: "sans", weight: "500" }),
+              fontSize: theme.fontSize.bodySm,
+              color: disabled ? disabledFg : fillFg,
+              letterSpacing: theme.letterSpacing.uppercaseMd,
+              textTransform: "uppercase",
+            }}
+          >
+            {label}
+          </Text>
+        )}
       </View>
     </Pressable>
   );

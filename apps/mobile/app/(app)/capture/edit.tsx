@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { Controller, useWatch } from 'react-hook-form';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   KeyboardAwareScrollView,
@@ -21,7 +22,17 @@ const KAS_BOTTOM_OFFSET = 90;
 export default function CaptureEditScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { text, setText } = useCaptureDraft();
+  const { form, photoTaken } = useCaptureDraft();
+  const { control } = form;
+  const text = useWatch({ control, name: 'text' }) ?? '';
+
+  // When the user tapped the shutter, OCR will (eventually) pre-fill the input
+  // and they're trimming it down. When they tapped Skip, they're typing from
+  // scratch — swap the copy so the framing matches the path they took.
+  const title = photoTaken ? 'Trim to the quote' : 'Enter the quote';
+  const subtitle = photoTaken
+    ? 'Edit until only the passage you want to keep remains.'
+    : 'Type the passage you want to save.';
 
   return (
     <View style={styles.flex}>
@@ -35,11 +46,9 @@ export default function CaptureEditScreen() {
             marginBottom: 8
           }}
         >
-          Trim to the quote
+          {title}
         </Text>
-        <Eyebrow size={theme.fontSize.eyebrowSm}>
-          Edit until only the passage you want to keep remains.
-        </Eyebrow>
+        <Eyebrow size={theme.fontSize.eyebrowSm}>{subtitle}</Eyebrow>
       </View>
 
       <KeyboardAwareScrollView
@@ -48,23 +57,30 @@ export default function CaptureEditScreen() {
         keyboardShouldPersistTaps='handled'
         bottomOffset={KAS_BOTTOM_OFFSET}
       >
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          autoFocus
-          multiline
-          textAlignVertical='top'
-          placeholder='—'
-          placeholderTextColor={theme.colors.textFaint}
-          style={{
-            minHeight: 320,
-            padding: 0,
-            fontFamily: resolveFont({ family: 'serif', weight: '400' }),
-            fontSize: theme.fontSize.serifLg,
-            lineHeight: theme.lineHeight.serifLg,
-            letterSpacing: BODY_TRACKING,
-            color: theme.colors.textPrimary
-          }}
+        <Controller
+          control={control}
+          name='text'
+          render={({ field: { value, onChange, onBlur } }) => (
+            <TextInput
+              value={value ?? ''}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              autoFocus
+              multiline
+              textAlignVertical='top'
+              placeholder='—'
+              placeholderTextColor={theme.colors.textFaint}
+              style={{
+                minHeight: 320,
+                padding: 0,
+                fontFamily: resolveFont({ family: 'serif', weight: '400' }),
+                fontSize: theme.fontSize.serifLg,
+                lineHeight: theme.lineHeight.serifLg,
+                letterSpacing: BODY_TRACKING,
+                color: theme.colors.textPrimary
+              }}
+            />
+          )}
         />
       </KeyboardAwareScrollView>
 

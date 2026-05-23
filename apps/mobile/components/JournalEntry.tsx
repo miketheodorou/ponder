@@ -4,7 +4,8 @@ import type {
   Quote,
 } from "@ponder/db/schema";
 import {
-  updateJournalEntrySchema,
+  createJournalEntrySchema,
+  type CreateJournalEntryInput,
   type UpdateJournalEntryInput,
 } from "@ponder/db/validators";
 import type { UseMutationResult } from "@tanstack/react-query";
@@ -37,9 +38,13 @@ interface JournalEntryProps {
   /** Quote this entry links to — fetched separately by the parent. */
   linkedQuote: Quote | null;
   onBack: () => void;
-  /** Called with the trimmed body when the user taps Save. New mode only. */
-  onSave?: (body: string) => void;
-  /** Edit-existing save. Distinct from `onSave` (the create flow). */
+  /** Composer-mode submit (entry.id === 'new'). */
+  createMutation?: UseMutationResult<
+    JournalEntryRow,
+    Error,
+    CreateJournalEntryInput
+  >;
+  /** Edit-existing save. */
   editMutation?: UseMutationResult<
     JournalEntryRow,
     Error,
@@ -47,6 +52,12 @@ interface JournalEntryProps {
   >;
   deleteMutation?: UseMutationResult<JournalEntryRow, Error, void>;
 }
+
+// Form value shape is the same for create and update — `content: string`.
+// We always use `createJournalEntrySchema` for the resolver because the UI
+// requires non-empty content in both modes (the update schema only loosens
+// `content` to optional for partial wire payloads, which doesn't apply here).
+type ContentForm = CreateJournalEntryInput;
 
 const ENTRY_DATE_FORMAT: Intl.DateTimeFormatOptions = {
   month: "short",
@@ -61,18 +72,18 @@ export function JournalEntry({
   entry,
   linkedQuote,
   onBack,
-  onSave,
+  createMutation,
   editMutation,
   deleteMutation,
 }: JournalEntryProps) {
   const theme = useTheme();
   const isNew = entry?.id === "new";
-  const [body, setBody] = useState(entry?.content ?? "");
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const form = useForm<UpdateJournalEntryInput>({
-    resolver: zodResolver(updateJournalEntrySchema),
+  // Single form drives both composer and edit modes.
+  const form = useForm<ContentForm>({
+    resolver: zodResolver(createJournalEntrySchema),
     mode: "onChange",
     defaultValues: { content: entry?.content ?? "" },
   });
@@ -91,9 +102,10 @@ export function JournalEntry({
       ? formatDate(entry.createdAt)
       : "";
 
-  const canSaveNew = body.trim().length > 0;
-  const editPending = editMutation?.isPending ?? false;
-  const editErrored = !!editMutation?.error;
+  const activeMutation = isNew ? createMutation : editMutation;
+  const submitPending = activeMutation?.isPending ?? false;
+  const submitErrored =
+    !!activeMutation?.error && (isNew || editing);
 
   const startEdit = () => {
     reset({ content: entry.content ?? "" });
@@ -103,77 +115,86 @@ export function JournalEntry({
 
   const cancelEdit = () => setEditing(false);
 
-  const onConfirmEdit = handleSubmit(async (values) => {
-    if (!editMutation) return;
-    try {
-      await editMutation.mutateAsync(values);
-      setEditing(false);
-    } catch {
-      // editMutation.error holds it; banner reads it directly.
+  const onSubmit = handleSubmit(async (values) => {
+    if (isNew) {
+      if (!createMutation) return;
+      try {
+        await createMutation.mutateAsync({ content: values.content.trim() });
+      } catch {
+        // createMutation.error holds it; banner reads it directly.
+      }
+    } else {
+      if (!editMutation) return;
+      try {
+        await editMutation.mutateAsync({ content: values.content.trim() });
+        setEditing(false);
+      } catch {
+        // editMutation.error holds it; banner reads it directly.
+      }
     }
   });
 
-  const rightAction = isNew
-    ? onSave && (
-        <Pressable
-          onPress={() => onSave(body.trim())}
-          disabled={!canSaveNew}
-          hitSlop={12}
-          accessibilityRole="button"
-          accessibilityLabel="Save entry"
-          accessibilityState={{ disabled: !canSaveNew }}
-          style={styles.headerAction}
+  const rightAction = isNew ? (
+    <Pressable
+      onPress={onSubmit}
+      disabled={!isValid || submitPending}
+      hitSlop={12}
+      accessibilityRole="button"
+      accessibilityLabel="Save entry"
+      accessibilityState={{ disabled: !isValid || submitPending }}
+      style={styles.headerAction}
+    >
+      {submitPending ? (
+        <ActivityIndicator color={theme.colors.destructive} size="small" />
+      ) : (
+        <Eyebrow
+          color={isValid ? theme.colors.textPrimary : theme.colors.textFaint}
         >
-          <Eyebrow
-            color={canSaveNew ? theme.colors.textPrimary : theme.colors.textFaint}
-          >
-            Save
-          </Eyebrow>
-        </Pressable>
-      )
-    : editing
-      ? (
-          <Pressable
-            onPress={onConfirmEdit}
-            accessibilityRole="button"
-            accessibilityLabel="Save changes"
-            accessibilityState={{ disabled: !isValid || editPending }}
-            disabled={!isValid || editPending}
-            hitSlop={12}
-            style={styles.headerAction}
-          >
-            {editPending ? (
-              <ActivityIndicator color={theme.colors.destructive} size="small" />
-            ) : (
-              <Eyebrow
-                color={isValid ? theme.colors.textPrimary : theme.colors.textFaint}
-              >
-                Done
-              </Eyebrow>
-            )}
-          </Pressable>
-        )
-      : (
-          <Pressable
-            onPress={startEdit}
-            accessibilityRole="button"
-            accessibilityLabel="Edit entry"
-            hitSlop={12}
-            style={styles.headerAction}
-          >
-            <Eyebrow color={theme.colors.textMuted}>Edit</Eyebrow>
-          </Pressable>
-        );
+          Save
+        </Eyebrow>
+      )}
+    </Pressable>
+  ) : editing ? (
+    <Pressable
+      onPress={onSubmit}
+      accessibilityRole="button"
+      accessibilityLabel="Save changes"
+      accessibilityState={{ disabled: !isValid || submitPending }}
+      disabled={!isValid || submitPending}
+      hitSlop={12}
+      style={styles.headerAction}
+    >
+      {submitPending ? (
+        <ActivityIndicator color={theme.colors.destructive} size="small" />
+      ) : (
+        <Eyebrow
+          color={isValid ? theme.colors.textPrimary : theme.colors.textFaint}
+        >
+          Done
+        </Eyebrow>
+      )}
+    </Pressable>
+  ) : (
+    <Pressable
+      onPress={startEdit}
+      accessibilityRole="button"
+      accessibilityLabel="Edit entry"
+      hitSlop={12}
+      style={styles.headerAction}
+    >
+      <Eyebrow color={theme.colors.textMuted}>Edit</Eyebrow>
+    </Pressable>
+  );
 
   const leftAction = editing && !isNew ? (
     <Pressable
       onPress={cancelEdit}
       accessibilityRole="button"
       accessibilityLabel="Cancel edit"
-      accessibilityState={{ disabled: editPending }}
-      disabled={editPending}
+      accessibilityState={{ disabled: submitPending }}
+      disabled={submitPending}
       hitSlop={12}
-      style={[styles.headerAction, { opacity: editPending ? 0.5 : 1 }]}
+      style={[styles.headerAction, { opacity: submitPending ? 0.5 : 1 }]}
     >
       <Eyebrow color={theme.colors.textMuted}>Cancel</Eyebrow>
     </Pressable>
@@ -185,7 +206,7 @@ export function JournalEntry({
         onBack={onBack}
         label="Quote"
         left={leftAction}
-        right={rightAction || undefined}
+        right={rightAction}
       />
 
       <KeyboardAwareScrollView
@@ -229,7 +250,7 @@ export function JournalEntry({
 
         <Eyebrow style={styles.dateLabel}>{dateLabel}</Eyebrow>
 
-        {editing && editErrored ? (
+        {submitErrored ? (
           <Text
             style={{
               fontFamily: resolveFont({ family: "sans", weight: "400" }),
@@ -244,27 +265,7 @@ export function JournalEntry({
           </Text>
         ) : null}
 
-        {isNew ? (
-          <TextInput
-            value={body}
-            onChangeText={setBody}
-            autoFocus
-            multiline
-            placeholder="Begin writing…"
-            placeholderTextColor={theme.colors.textFaint}
-            textAlignVertical="top"
-            style={[
-              styles.bodyInput,
-              {
-                fontFamily: resolveFont({ family: "serif", weight: "400" }),
-                fontSize: theme.fontSize.serifLg,
-                lineHeight: theme.lineHeight.serifLg,
-                letterSpacing: BODY_TRACKING,
-                color: theme.colors.textPrimary,
-              },
-            ]}
-          />
-        ) : editing ? (
+        {isNew || editing ? (
           <Controller
             control={control}
             name="content"

@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { Controller, useWatch } from 'react-hook-form';
 import { StyleSheet, Text, View } from 'react-native';
 import {
   KeyboardAwareScrollView,
@@ -17,7 +18,14 @@ const KAS_BOTTOM_OFFSET = 90;
 export default function CaptureContextScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { book, setBook, author, setAuthor, page, setPage } = useCaptureDraft();
+  const { form } = useCaptureDraft();
+  const { control } = form;
+  const [bookTitle, authorName] = useWatch({
+    control,
+    name: ['bookTitle', 'authorName']
+  });
+
+  const nextDisabled = !bookTitle?.trim() || !authorName?.trim();
 
   return (
     <View style={styles.flex}>
@@ -34,7 +42,7 @@ export default function CaptureContextScreen() {
           Where is it from?
         </Text>
         <Eyebrow size={theme.fontSize.eyebrowSm}>
-          Pre-filled from your last capture.
+          Add a book and author so you can find it later.
         </Eyebrow>
       </View>
 
@@ -44,21 +52,54 @@ export default function CaptureContextScreen() {
         keyboardShouldPersistTaps='handled'
         bottomOffset={KAS_BOTTOM_OFFSET}
       >
-        <CaptureField label='Book' value={book} onChange={setBook} />
-        <CaptureField label='Author' value={author} onChange={setAuthor} />
-        <CaptureField
-          label='Page'
-          value={page}
-          onChange={setPage}
-          placeholder='—'
-          numeric
+        <Controller
+          control={control}
+          name='bookTitle'
+          render={({ field: { value, onChange } }) => (
+            <CaptureField
+              label='Book'
+              value={value ?? ''}
+              onChange={onChange}
+              placeholder='—'
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name='authorName'
+          render={({ field: { value, onChange } }) => (
+            <CaptureField
+              label='Author'
+              value={value ?? ''}
+              onChange={onChange}
+              placeholder='—'
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name='pageNumber'
+          render={({ field: { value, onChange } }) => (
+            <CaptureField
+              label='Page'
+              value={value == null ? '' : String(value)}
+              onChange={(s) => {
+                const trimmed = s.trim();
+                if (trimmed === '') return onChange(null);
+                const n = Number(trimmed);
+                onChange(Number.isFinite(n) ? n : NaN);
+              }}
+              placeholder='—'
+              numeric
+            />
+          )}
         />
       </KeyboardAwareScrollView>
 
       <CaptureFooter
         primary='Next'
         onPrimary={() => router.push('/capture/confirm')}
-        disabled={!book.trim() || !author.trim()}
+        disabled={nextDisabled}
       />
 
       <KeyboardToolbar />

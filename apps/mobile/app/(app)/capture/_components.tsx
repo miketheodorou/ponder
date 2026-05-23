@@ -14,12 +14,14 @@ interface CaptureFooterProps {
   primary: string;
   onPrimary: () => void;
   disabled?: boolean;
+  pending?: boolean;
 }
 
 export function CaptureFooter({
   primary,
   onPrimary,
-  disabled
+  disabled,
+  pending
 }: CaptureFooterProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -33,7 +35,12 @@ export function CaptureFooter({
         }
       ]}
     >
-      <PrimaryButton label={primary} onPress={onPrimary} disabled={disabled} />
+      <PrimaryButton
+        label={primary}
+        onPress={onPrimary}
+        disabled={disabled}
+        pending={pending}
+      />
     </View>
   );
 }

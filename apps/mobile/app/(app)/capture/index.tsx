@@ -3,24 +3,9 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Eyebrow } from '@/components/Eyebrow';
-import { useTheme } from '@/theme';
+import { resolveFont, useTheme } from '@/theme';
 
 import { useCaptureDraft } from './_state';
-
-// Mock OCR result — shoved into the draft when the shutter is tapped, then
-// trimmed on the next step. Replaced by a real camera + vision API call
-// later; the rest of the flow doesn't change.
-const OCR_SAMPLE = `Twilight of the Idols
-or, How to Philosophize with a Hammer
-
-Maxims and Arrows
-12.
-
-If we have our own why in life, we shall get along with almost any how. — Man does not strive after happiness; only the Englishman does that.
-
-He who has a why to live can bear almost any how.
-
-13.`;
 
 const HORIZONTAL_GUTTER = 28;
 
@@ -28,10 +13,18 @@ export default function CaptureCameraScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { setText } = useCaptureDraft();
+  const { setPhotoTaken } = useCaptureDraft();
 
   const onShutter = () => {
-    setText(OCR_SAMPLE);
+    // OCR will fill `text` here once the vision pipeline lands. Until then
+    // the user lands on step 1 with an empty input — same path as Skip, just
+    // labelled "Trim" instead of "Enter".
+    setPhotoTaken(true);
+    router.push('/capture/edit');
+  };
+
+  const onSkip = () => {
+    setPhotoTaken(false);
     router.push('/capture/edit');
   };
 
@@ -134,6 +127,27 @@ export default function CaptureCameraScreen() {
             ]}
           />
         </Pressable>
+
+        <Pressable
+          onPress={onSkip}
+          accessibilityRole='button'
+          accessibilityLabel='Skip · enter manually'
+          hitSlop={12}
+          style={({ pressed }) => [
+            styles.skip,
+            { opacity: pressed ? 0.6 : 1 }
+          ]}
+        >
+          <Eyebrow
+            size={theme.fontSize.eyebrowSm}
+            color={theme.colors.textFaint}
+            style={{
+              fontFamily: resolveFont({ family: 'sans', weight: '400' })
+            }}
+          >
+            Skip · Enter manually
+          </Eyebrow>
+        </Pressable>
       </View>
     </View>
   );
@@ -201,7 +215,8 @@ const styles = StyleSheet.create({
   shutterRow: {
     paddingTop: 32,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    gap: 18
   },
   shutterRing: {
     width: 78,
@@ -213,5 +228,9 @@ const styles = StyleSheet.create({
   shutterCore: {
     flex: 1,
     borderRadius: 100
+  },
+  skip: {
+    paddingVertical: 6,
+    paddingHorizontal: 12
   }
 });
