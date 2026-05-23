@@ -53,6 +53,7 @@ interface CaptureFieldProps {
   onChange: (s: string) => void;
   placeholder?: string;
   numeric?: boolean;
+  autoFocus?: boolean;
 }
 
 export function CaptureField({
@@ -60,7 +61,8 @@ export function CaptureField({
   value,
   onChange,
   placeholder,
-  numeric
+  numeric,
+  autoFocus
 }: CaptureFieldProps) {
   const theme = useTheme();
   return (
@@ -77,6 +79,7 @@ export function CaptureField({
         placeholderTextColor={theme.colors.textFaint}
         keyboardType={numeric ? 'number-pad' : 'default'}
         autoCorrect={!numeric}
+        autoFocus={autoFocus}
         style={{
           flex: 1,
           padding: 0,

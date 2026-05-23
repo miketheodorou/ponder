@@ -85,7 +85,8 @@ export function getUserQuotes(userId: string) {
     .leftJoin(quoteThemes, eq(quoteThemes.quoteId, quotes.id))
     .leftJoin(themes, eq(themes.id, quoteThemes.themeId))
     .where(eq(quotes.userId, userId))
-    .groupBy(quotes.id);
+    .groupBy(quotes.id)
+    .orderBy(desc(quotes.createdAt));
 }
 
 function definedEntries<T extends object>(input: T) {

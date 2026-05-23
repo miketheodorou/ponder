@@ -61,6 +61,7 @@ export default function CaptureContextScreen() {
               value={value ?? ''}
               onChange={onChange}
               placeholder='—'
+              autoFocus
             />
           )}
         />
