@@ -11,28 +11,26 @@ interface NavHeaderProps {
   label: string;
   /** Optional action rendered on the right. Used e.g. for a Save button. */
   right?: ReactNode;
+  /** When provided, replaces the default chevron+label back affordance. */
+  left?: ReactNode;
 }
 
-/**
- * Shared back-button + label header used inside the catalogue sheet's nav stack
- * (QuoteDetail, JournalEntry). Lives outside the scrolling content so the
- * back affordance stays put as the user scrolls. Optionally accepts a right
- * slot for screen-specific actions.
- */
-export function NavHeader({ onBack, label, right }: NavHeaderProps) {
+export function NavHeader({ onBack, label, right, left }: NavHeaderProps) {
   const theme = useTheme();
   return (
     <View style={styles.root}>
-      <Pressable
-        onPress={onBack}
-        hitSlop={12}
-        accessibilityRole="button"
-        accessibilityLabel={`Back to ${label}`}
-        style={styles.back}
-      >
-        <ChevronLeft size={theme.icon.sm} color={theme.colors.textMuted} />
-        <Eyebrow>{label}</Eyebrow>
-      </Pressable>
+      {left ?? (
+        <Pressable
+          onPress={onBack}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={`Back to ${label}`}
+          style={styles.back}
+        >
+          <ChevronLeft size={theme.icon.sm} color={theme.colors.textMuted} />
+          <Eyebrow>{label}</Eyebrow>
+        </Pressable>
+      )}
       {right ? <View style={styles.right}>{right}</View> : null}
     </View>
   );

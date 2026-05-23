@@ -1,6 +1,17 @@
-import type { JournalEntry as JournalEntryRow, Quote } from "@ponder/db/schema";
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type {
+  JournalEntry as JournalEntryRow,
+  Quote,
+} from "@ponder/db/schema";
 import {
+  updateJournalEntrySchema,
+  type UpdateJournalEntryInput,
+} from "@ponder/db/validators";
+import type { UseMutationResult } from "@tanstack/react-query";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import {
+  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -28,11 +39,13 @@ interface JournalEntryProps {
   onBack: () => void;
   /** Called with the trimmed body when the user taps Save. New mode only. */
   onSave?: (body: string) => void;
-  /**
-   * Fired after the user confirms removal. The dialog awaits this promise:
-   * on resolve it closes; on reject it surfaces an inline error and stays open.
-   */
-  onDelete?: () => Promise<void>;
+  /** Edit-existing save. Distinct from `onSave` (the create flow). */
+  editMutation?: UseMutationResult<
+    JournalEntryRow,
+    Error,
+    UpdateJournalEntryInput
+  >;
+  deleteMutation?: UseMutationResult<JournalEntryRow, Error, void>;
 }
 
 const ENTRY_DATE_FORMAT: Intl.DateTimeFormatOptions = {
@@ -42,33 +55,33 @@ const ENTRY_DATE_FORMAT: Intl.DateTimeFormatOptions = {
 };
 
 const HORIZONTAL_GUTTER = 28;
-
-// -0.005em on 17pt body — matches the prototype's tracking on the journal body.
 const BODY_TRACKING = -0.085;
 
-/**
- * JournalEntry — read-only view of an existing entry, or an editable composer
- * when `entry.id === 'new'`. The "new" marker is the prototype's pattern: a
- * synthesized entry with id='new' carries the linking quoteId, an empty body,
- * and a "New entry" date label.
- *
- * In new mode, the NavHeader's right slot renders a Save action; tapping it
- * sends the trimmed body to the parent route, which is responsible for
- * persisting and popping the nested stack.
- */
 export function JournalEntry({
   entry,
   linkedQuote,
   onBack,
   onSave,
-  onDelete,
+  editMutation,
+  deleteMutation,
 }: JournalEntryProps) {
   const theme = useTheme();
   const isNew = entry?.id === "new";
   const [body, setBody] = useState(entry?.content ?? "");
+  const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deletePending, setDeletePending] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const form = useForm<UpdateJournalEntryInput>({
+    resolver: zodResolver(updateJournalEntrySchema),
+    mode: "onChange",
+    defaultValues: { content: entry?.content ?? "" },
+  });
+  const {
+    control,
+    handleSubmit,
+    formState: { isValid },
+    reset,
+  } = form;
 
   if (!entry) return null;
 
@@ -78,29 +91,102 @@ export function JournalEntry({
       ? formatDate(entry.createdAt)
       : "";
 
-  const canSave = body.trim().length > 0;
+  const canSaveNew = body.trim().length > 0;
+  const editPending = editMutation?.isPending ?? false;
+  const editErrored = !!editMutation?.error;
 
-  const saveAction =
-    isNew && onSave ? (
-      <Pressable
-        onPress={() => onSave(body.trim())}
-        disabled={!canSave}
-        hitSlop={12}
-        accessibilityRole="button"
-        accessibilityLabel="Save entry"
-        accessibilityState={{ disabled: !canSave }}
-      >
-        <Eyebrow
-          color={canSave ? theme.colors.textPrimary : theme.colors.textFaint}
+  const startEdit = () => {
+    reset({ content: entry.content ?? "" });
+    editMutation?.reset();
+    setEditing(true);
+  };
+
+  const cancelEdit = () => setEditing(false);
+
+  const onConfirmEdit = handleSubmit(async (values) => {
+    if (!editMutation) return;
+    try {
+      await editMutation.mutateAsync(values);
+      setEditing(false);
+    } catch {
+      // editMutation.error holds it; banner reads it directly.
+    }
+  });
+
+  const rightAction = isNew
+    ? onSave && (
+        <Pressable
+          onPress={() => onSave(body.trim())}
+          disabled={!canSaveNew}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="Save entry"
+          accessibilityState={{ disabled: !canSaveNew }}
+          style={styles.headerAction}
         >
-          Save
-        </Eyebrow>
-      </Pressable>
-    ) : undefined;
+          <Eyebrow
+            color={canSaveNew ? theme.colors.textPrimary : theme.colors.textFaint}
+          >
+            Save
+          </Eyebrow>
+        </Pressable>
+      )
+    : editing
+      ? (
+          <Pressable
+            onPress={onConfirmEdit}
+            accessibilityRole="button"
+            accessibilityLabel="Save changes"
+            accessibilityState={{ disabled: !isValid || editPending }}
+            disabled={!isValid || editPending}
+            hitSlop={12}
+            style={styles.headerAction}
+          >
+            {editPending ? (
+              <ActivityIndicator color={theme.colors.destructive} size="small" />
+            ) : (
+              <Eyebrow
+                color={isValid ? theme.colors.textPrimary : theme.colors.textFaint}
+              >
+                Done
+              </Eyebrow>
+            )}
+          </Pressable>
+        )
+      : (
+          <Pressable
+            onPress={startEdit}
+            accessibilityRole="button"
+            accessibilityLabel="Edit entry"
+            hitSlop={12}
+            style={styles.headerAction}
+          >
+            <Eyebrow color={theme.colors.textMuted}>Edit</Eyebrow>
+          </Pressable>
+        );
+
+  const leftAction = editing && !isNew ? (
+    <Pressable
+      onPress={cancelEdit}
+      accessibilityRole="button"
+      accessibilityLabel="Cancel edit"
+      accessibilityState={{ disabled: editPending }}
+      disabled={editPending}
+      hitSlop={12}
+      style={[styles.headerAction, { opacity: editPending ? 0.5 : 1 }]}
+    >
+      <Eyebrow color={theme.colors.textMuted}>Cancel</Eyebrow>
+    </Pressable>
+  ) : undefined;
 
   return (
     <View style={styles.root}>
-      <NavHeader onBack={onBack} label="Quote" right={saveAction} />
+      <NavHeader
+        onBack={onBack}
+        label="Quote"
+        left={leftAction}
+        right={rightAction || undefined}
+      />
 
       <KeyboardAwareScrollView
         style={styles.scroll}
@@ -143,6 +229,21 @@ export function JournalEntry({
 
         <Eyebrow style={styles.dateLabel}>{dateLabel}</Eyebrow>
 
+        {editing && editErrored ? (
+          <Text
+            style={{
+              fontFamily: resolveFont({ family: "sans", weight: "400" }),
+              fontSize: theme.fontSize.bodySm,
+              lineHeight: 18,
+              color: theme.colors.destructive,
+              textAlign: "center",
+              marginBottom: 16,
+            }}
+          >
+            Couldn&apos;t save. Try again.
+          </Text>
+        ) : null}
+
         {isNew ? (
           <TextInput
             value={body}
@@ -163,6 +264,33 @@ export function JournalEntry({
               },
             ]}
           />
+        ) : editing ? (
+          <Controller
+            control={control}
+            name="content"
+            render={({ field: { value, onChange, onBlur } }) => (
+              <TextInput
+                value={value ?? ""}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                autoFocus
+                multiline
+                placeholder="Begin writing…"
+                placeholderTextColor={theme.colors.textFaint}
+                textAlignVertical="top"
+                style={[
+                  styles.bodyInput,
+                  {
+                    fontFamily: resolveFont({ family: "serif", weight: "400" }),
+                    fontSize: theme.fontSize.serifLg,
+                    lineHeight: theme.lineHeight.serifLg,
+                    letterSpacing: BODY_TRACKING,
+                    color: theme.colors.textPrimary,
+                  },
+                ]}
+              />
+            )}
+          />
         ) : (
           <Text
             style={{
@@ -178,7 +306,7 @@ export function JournalEntry({
         )}
       </KeyboardAwareScrollView>
 
-      {!isNew && (
+      {!isNew && !editing && (
         <View
           style={[
             styles.removeBar,
@@ -210,28 +338,15 @@ export function JournalEntry({
         title="Remove this entry?"
         message="This can't be undone. The linked quote stays in your catalogue."
         confirmLabel="Remove"
-        pending={deletePending}
-        errorMessage={deleteError}
+        pending={deleteMutation?.isPending ?? false}
+        errorMessage={
+          deleteMutation?.error ? "Couldn't remove. Try again." : null
+        }
         onCancel={() => {
-          setDeleteError(null);
+          deleteMutation?.reset();
           setConfirmDelete(false);
         }}
-        onConfirm={async () => {
-          if (!onDelete) {
-            setConfirmDelete(false);
-            return;
-          }
-          setDeleteError(null);
-          setDeletePending(true);
-          try {
-            await onDelete();
-            setConfirmDelete(false);
-          } catch {
-            setDeleteError("Couldn't remove. Try again.");
-          } finally {
-            setDeletePending(false);
-          }
-        }}
+        onConfirm={() => deleteMutation?.mutate()}
       />
     </View>
   );
@@ -253,6 +368,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: HORIZONTAL_GUTTER,
     paddingTop: 24,
     paddingBottom: 60,
+  },
+  headerAction: {
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    marginHorizontal: -6,
   },
   contextBlock: {
     marginBottom: 32,

@@ -1,4 +1,5 @@
 import type { Quote } from '@ponder/db/schema';
+import type { UpdateQuoteInput } from '@ponder/db/validators';
 import { apiClient } from './client';
 
 type ApiResponse<T> = { data: T };
@@ -45,6 +46,13 @@ export function getQuoteById(id: string) {
 export function deleteQuote(id: string) {
   return apiClient
     .delete(`quotes/${id}`)
+    .json<ApiResponse<WireQuote>>()
+    .then((res) => res.data);
+}
+
+export function updateQuote(id: string, input: UpdateQuoteInput) {
+  return apiClient
+    .put(`quotes/${id}`, { json: input })
     .json<ApiResponse<WireQuote>>()
     .then((res) => res.data);
 }

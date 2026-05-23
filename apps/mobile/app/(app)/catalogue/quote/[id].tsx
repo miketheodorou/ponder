@@ -1,8 +1,9 @@
+import type { UpdateQuoteInput } from '@ponder/db/validators';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { deleteQuote, getQuoteById } from '@/api/quotes';
+import { deleteQuote, getQuoteById, updateQuote } from '@/api/quotes';
 import { QuoteDetail } from '@/components';
 import { useTheme } from '@/theme';
 
@@ -18,11 +19,17 @@ export default function QuoteDetailScreen() {
     enabled: Boolean(id)
   });
 
+  const saveMutation = useMutation({
+    mutationFn: (input: UpdateQuoteInput) => updateQuote(id, input),
+    onSuccess: () => {
+      // Prefix-matched: catalogue list, today's quote, and this detail.
+      queryClient.invalidateQueries({ queryKey: ['quotes'] });
+    }
+  });
+
   const deleteMutation = useMutation({
     mutationFn: () => deleteQuote(id),
     onSuccess: () => {
-      // ["quotes"] is prefix-matched — covers catalogue list, today's quote,
-      // and any cached detail. Server cascades to linked journal entries.
       queryClient.invalidateQueries({ queryKey: ['quotes'] });
       queryClient.removeQueries({ queryKey: ['journal-entries'] });
       router.back();
@@ -43,7 +50,8 @@ export default function QuoteDetailScreen() {
         onBack={() => router.back()}
         onOpenEntry={(entryId) => router.push(`/catalogue/entry/${entryId}`)}
         onNewEntry={() => router.push(`/catalogue/entry/new?quoteId=${id}`)}
-        onDelete={() => deleteMutation.mutateAsync().then(() => undefined)}
+        saveMutation={saveMutation}
+        deleteMutation={deleteMutation}
       />
     </View>
   );

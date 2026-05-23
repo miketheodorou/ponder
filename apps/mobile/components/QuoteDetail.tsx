@@ -1,6 +1,14 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import type { Quote } from "@ponder/db/schema";
-import { useState } from "react";
 import {
+  updateQuoteSchema,
+  type UpdateQuoteInput,
+} from "@ponder/db/validators";
+import type { UseMutationResult } from "@tanstack/react-query";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import {
+  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -33,11 +41,8 @@ interface QuoteDetailProps {
   onBack: () => void;
   onOpenEntry?: (entryId: string) => void;
   onNewEntry?: () => void;
-  /**
-   * Fired after the user confirms removal. The dialog awaits this promise:
-   * on resolve it closes; on reject it surfaces an inline error and stays open.
-   */
-  onDelete?: () => Promise<void>;
+  saveMutation?: UseMutationResult<Quote, Error, UpdateQuoteInput>;
+  deleteMutation?: UseMutationResult<Quote, Error, void>;
 }
 
 const HORIZONTAL_GUTTER = 28;
@@ -51,29 +56,44 @@ const ENTRY_DATE_FORMAT: Intl.DateTimeFormatOptions = {
   day: "numeric",
 };
 
-/**
- * Read view of a quote. Tags can be appended via an inline input on the
- * "+ tag" pill — edits live in component state until persistence lands.
- */
 export function QuoteDetail({
   quote,
   onBack,
   onOpenEntry,
   onNewEntry,
-  onDelete,
+  saveMutation,
+  deleteMutation,
 }: QuoteDetailProps) {
   const theme = useTheme();
 
   const [tags, setTags] = useState<string[]>(quote?.themes ?? []);
   const [editingTag, setEditingTag] = useState(false);
   const [tagDraft, setTagDraft] = useState("");
+  const [editing, setEditing] = useState(false);
   const [confirmDeleteQuote, setConfirmDeleteQuote] = useState(false);
-  const [deletePending, setDeletePending] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const form = useForm<UpdateQuoteInput>({
+    resolver: zodResolver(updateQuoteSchema),
+    mode: "onChange",
+    defaultValues: {
+      text: quote?.text ?? "",
+      authorName: quote?.authorName ?? "",
+      bookTitle: quote?.bookTitle ?? "",
+      pageNumber: quote?.pageNumber ?? null,
+    },
+  });
+  const {
+    control,
+    handleSubmit,
+    formState: { isValid },
+    reset,
+  } = form;
 
   if (!quote) return null;
 
   const linkedEntries = quote.journalEntries;
+  const savePending = saveMutation?.isPending ?? false;
+  const saveErrored = !!saveMutation?.error;
 
   const submitTag = () => {
     const trimmed = tagDraft.trim().toLowerCase();
@@ -84,9 +104,86 @@ export function QuoteDetail({
     setEditingTag(false);
   };
 
+  const startEdit = () => {
+    reset({
+      text: quote.text,
+      authorName: quote.authorName,
+      bookTitle: quote.bookTitle,
+      pageNumber: quote.pageNumber ?? null,
+    });
+    saveMutation?.reset();
+    setEditing(true);
+  };
+
+  const cancelEdit = () => setEditing(false);
+
+  const onConfirmEdit = handleSubmit(async (values) => {
+    if (!saveMutation) return;
+    try {
+      await saveMutation.mutateAsync(values);
+      setEditing(false);
+    } catch {
+      // mutation.error holds it; the banner reads it directly.
+    }
+  });
+
+  const rightAction = editing ? (
+    <Pressable
+      onPress={onConfirmEdit}
+      accessibilityRole="button"
+      accessibilityLabel="Save changes"
+      accessibilityState={{ disabled: !isValid || savePending }}
+      disabled={!isValid || savePending}
+      hitSlop={12}
+      style={styles.headerAction}
+    >
+      {savePending ? (
+        <ActivityIndicator
+          color={theme.colors.destructive}
+          size="small"
+        />
+      ) : (
+        <Eyebrow
+          color={isValid ? theme.colors.textPrimary : theme.colors.textFaint}
+        >
+          Done
+        </Eyebrow>
+      )}
+    </Pressable>
+  ) : (
+    <Pressable
+      onPress={startEdit}
+      accessibilityRole="button"
+      accessibilityLabel="Edit quote"
+      hitSlop={12}
+      style={styles.headerAction}
+    >
+      <Eyebrow color={theme.colors.textMuted}>Edit</Eyebrow>
+    </Pressable>
+  );
+
+  const leftAction = editing ? (
+    <Pressable
+      onPress={cancelEdit}
+      accessibilityRole="button"
+      accessibilityLabel="Cancel edit"
+      accessibilityState={{ disabled: savePending }}
+      disabled={savePending}
+      hitSlop={12}
+      style={[styles.headerAction, { opacity: savePending ? 0.5 : 1 }]}
+    >
+      <Eyebrow color={theme.colors.textMuted}>Cancel</Eyebrow>
+    </Pressable>
+  ) : undefined;
+
   return (
     <View style={styles.root}>
-      <NavHeader onBack={onBack} label="Catalogue" />
+      <NavHeader
+        onBack={onBack}
+        label="Catalogue"
+        left={leftAction}
+        right={rightAction}
+      />
 
       <KeyboardAwareScrollView
         style={styles.scroll}
@@ -95,37 +192,133 @@ export function QuoteDetail({
         keyboardShouldPersistTaps="handled"
         bottomOffset={24}
       >
-        <Text
-          style={{
-            fontFamily: resolveFont({ family: "serif", weight: "400" }),
-            fontSize: theme.fontSize.serif3xl,
-            lineHeight: theme.lineHeight.serif3xl,
-            letterSpacing: theme.letterSpacing.tightSerif,
-            color: theme.colors.textPrimary,
-            marginBottom: 36,
-          }}
-        >
-          {`“${quote.text}”`}
-        </Text>
+        {editing && saveErrored ? (
+          <Text
+            style={{
+              fontFamily: resolveFont({ family: "sans", weight: "400" }),
+              fontSize: theme.fontSize.bodySm,
+              lineHeight: 18,
+              color: theme.colors.destructive,
+              textAlign: "center",
+              marginBottom: 16,
+            }}
+          >
+            Couldn&apos;t save. Try again.
+          </Text>
+        ) : null}
+
+        {editing ? (
+          <Controller
+            control={control}
+            name="text"
+            render={({ field: { value, onChange, onBlur } }) => (
+              <TextInput
+                value={value ?? ""}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                multiline
+                autoFocus
+                textAlignVertical="top"
+                placeholder="Quote text"
+                placeholderTextColor={theme.colors.textFaint}
+                style={{
+                  fontFamily: resolveFont({ family: "serif", weight: "400" }),
+                  fontSize: theme.fontSize.serif3xl,
+                  lineHeight: theme.lineHeight.serif3xl,
+                  letterSpacing: theme.letterSpacing.tightSerif,
+                  color: theme.colors.textPrimary,
+                  marginBottom: 36,
+                  padding: 0,
+                  minHeight: 120,
+                }}
+              />
+            )}
+          />
+        ) : (
+          <Text
+            style={{
+              fontFamily: resolveFont({ family: "serif", weight: "400" }),
+              fontSize: theme.fontSize.serif3xl,
+              lineHeight: theme.lineHeight.serif3xl,
+              letterSpacing: theme.letterSpacing.tightSerif,
+              color: theme.colors.textPrimary,
+              marginBottom: 36,
+            }}
+          >
+            {`“${quote.text}”`}
+          </Text>
+        )}
 
         <View style={styles.metaGroup}>
-          <MetaRow label="Author" value={quote.authorName} />
-          <MetaRow label="Book" value={quote.bookTitle} />
-          <MetaRow
-            label="Page"
-            value={quote.pageNumber != null ? String(quote.pageNumber) : "—"}
-          />
+          {editing ? (
+            <>
+              <Controller
+                control={control}
+                name="authorName"
+                render={({ field: { value, onChange, onBlur } }) => (
+                  <EditableMetaRow
+                    label="Author"
+                    value={value ?? ""}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                  />
+                )}
+              />
+              <Controller
+                control={control}
+                name="bookTitle"
+                render={({ field: { value, onChange, onBlur } }) => (
+                  <EditableMetaRow
+                    label="Book"
+                    value={value ?? ""}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                  />
+                )}
+              />
+              <Controller
+                control={control}
+                name="pageNumber"
+                render={({ field: { value, onChange, onBlur } }) => (
+                  <EditableMetaRow
+                    label="Page"
+                    value={value == null ? "" : String(value)}
+                    onChangeText={(text) => {
+                      const trimmed = text.trim();
+                      if (trimmed === "") return onChange(null);
+                      const n = Number(trimmed);
+                      onChange(Number.isFinite(n) ? n : NaN);
+                    }}
+                    onBlur={onBlur}
+                    keyboardType="number-pad"
+                  />
+                )}
+              />
+            </>
+          ) : (
+            <>
+              <MetaRow label="Author" value={quote.authorName} />
+              <MetaRow label="Book" value={quote.bookTitle} />
+              <MetaRow
+                label="Page"
+                value={quote.pageNumber != null ? String(quote.pageNumber) : "—"}
+              />
+            </>
+          )}
           <MetaRow
             label="Saved"
             value={formatDate(quote.createdAt, SAVED_DATE_FORMAT)}
           />
         </View>
 
-        <View style={styles.section}>
+        <View
+          style={styles.section}
+          pointerEvents={editing ? "none" : "auto"}
+        >
           <Eyebrow size={theme.fontSize.eyebrowSm} style={styles.sectionLabel}>
             Tags
           </Eyebrow>
-          <View style={styles.tagWrap}>
+          <View style={[styles.tagWrap, editing && { opacity: 0.5 }]}>
             {tags.map((tag) => (
               <View
                 key={tag}
@@ -205,7 +398,7 @@ export function QuoteDetail({
           </View>
         </View>
 
-        <View>
+        <View pointerEvents={editing ? "none" : "auto"} style={editing && { opacity: 0.5 }}>
           <Eyebrow size={theme.fontSize.eyebrowSm} style={styles.sectionLabel}>
             {`Journal · ${linkedEntries.length} ${
               linkedEntries.length === 1 ? "entry" : "entries"
@@ -300,58 +493,47 @@ export function QuoteDetail({
         </View>
       </KeyboardAwareScrollView>
 
-      <View
-        style={[
-          styles.removeBar,
-          {
-            backgroundColor: theme.colors.backgroundRaised,
-            borderTopColor: theme.colors.hairline,
-          },
-        ]}
-      >
-        <Pressable
-          onPress={() => setConfirmDeleteQuote(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Remove quote"
-          hitSlop={8}
-          style={styles.removeButton}
+      {!editing && (
+        <View
+          style={[
+            styles.removeBar,
+            {
+              backgroundColor: theme.colors.backgroundRaised,
+              borderTopColor: theme.colors.hairline,
+            },
+          ]}
         >
-          <Eyebrow
-            size={theme.fontSize.eyebrowSm}
-            color={theme.colors.textFaint}
+          <Pressable
+            onPress={() => setConfirmDeleteQuote(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Remove quote"
+            hitSlop={8}
+            style={styles.removeButton}
           >
-            Remove quote
-          </Eyebrow>
-        </Pressable>
-      </View>
+            <Eyebrow
+              size={theme.fontSize.eyebrowSm}
+              color={theme.colors.textFaint}
+            >
+              Remove quote
+            </Eyebrow>
+          </Pressable>
+        </View>
+      )}
 
       <ConfirmDialog
         visible={confirmDeleteQuote}
         title="Remove this quote?"
         message="This will also remove any linked journal entries. This can't be undone."
         confirmLabel="Remove"
-        pending={deletePending}
-        errorMessage={deleteError}
+        pending={deleteMutation?.isPending ?? false}
+        errorMessage={
+          deleteMutation?.error ? "Couldn't remove. Try again." : null
+        }
         onCancel={() => {
-          setDeleteError(null);
+          deleteMutation?.reset();
           setConfirmDeleteQuote(false);
         }}
-        onConfirm={async () => {
-          if (!onDelete) {
-            setConfirmDeleteQuote(false);
-            return;
-          }
-          setDeleteError(null);
-          setDeletePending(true);
-          try {
-            await onDelete();
-            setConfirmDeleteQuote(false);
-          } catch {
-            setDeleteError("Couldn't remove. Try again.");
-          } finally {
-            setDeletePending(false);
-          }
-        }}
+        onConfirm={() => deleteMutation?.mutate()}
       />
     </View>
   );
@@ -391,6 +573,49 @@ function MetaRow({ label, value }: MetaRowProps) {
   );
 }
 
+interface EditableMetaRowProps {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  onBlur?: () => void;
+  keyboardType?: "default" | "number-pad";
+}
+
+function EditableMetaRow({
+  label,
+  value,
+  onChangeText,
+  onBlur,
+  keyboardType = "default",
+}: EditableMetaRowProps) {
+  const theme = useTheme();
+  return (
+    <View
+      style={[
+        styles.editableMetaRow,
+        { borderBottomColor: theme.colors.hairline },
+      ]}
+    >
+      <Eyebrow size={theme.fontSize.eyebrowSm}>{label}</Eyebrow>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        onBlur={onBlur}
+        keyboardType={keyboardType}
+        autoCorrect={false}
+        style={{
+          flex: 1,
+          fontFamily: resolveFont({ family: "sans", weight: "400" }),
+          fontSize: theme.fontSize.bodyMd,
+          color: theme.colors.textPrimary,
+          textAlign: "right",
+          padding: 0,
+        }}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -403,6 +628,11 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 60,
   },
+  headerAction: {
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    marginHorizontal: -6,
+  },
   metaGroup: {
     gap: 14,
     marginBottom: 32,
@@ -411,6 +641,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "baseline",
+  },
+  editableMetaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    gap: 14,
+    paddingBottom: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   section: {
     marginBottom: 32,
