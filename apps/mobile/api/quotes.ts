@@ -41,3 +41,10 @@ export function getQuoteById(id: string) {
     >()
     .then((res) => res.data);
 }
+
+export function deleteQuote(id: string) {
+  return apiClient
+    .delete(`quotes/${id}`)
+    .json<ApiResponse<WireQuote>>()
+    .then((res) => res.data);
+}

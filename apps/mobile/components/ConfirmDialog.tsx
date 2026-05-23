@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Animated, {
   Easing,
   runOnJS,
@@ -17,6 +24,10 @@ interface ConfirmDialogProps {
   message?: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  /** When true, both buttons are disabled and the destructive action shows a spinner. */
+  pending?: boolean;
+  /** If set, rendered as an inline error line beneath the message. */
+  errorMessage?: string | null;
   onCancel: () => void;
   onConfirm: () => void;
 }
@@ -37,6 +48,8 @@ export function ConfirmDialog({
   message = "This can't be undone. The linked quote stays in your catalogue.",
   confirmLabel = "Remove",
   cancelLabel = "Cancel",
+  pending = false,
+  errorMessage = null,
   onCancel,
   onConfirm,
 }: ConfirmDialogProps) {
@@ -87,7 +100,7 @@ export function ConfirmDialog({
     >
       <View style={styles.root}>
         <AnimatedPressable
-          onPress={onCancel}
+          onPress={pending ? undefined : onCancel}
           style={[
             styles.scrim,
             { backgroundColor: theme.colors.scrimStrong },
@@ -140,31 +153,55 @@ export function ConfirmDialog({
               >
                 {message}
               </Text>
+              {errorMessage ? (
+                <Text
+                  style={{
+                    fontFamily: resolveFont({ family: "sans", weight: "400" }),
+                    fontSize: theme.fontSize.bodySm,
+                    lineHeight: 18,
+                    color: theme.colors.destructive,
+                    textAlign: "center",
+                    maxWidth: 280,
+                    alignSelf: "center",
+                    marginTop: 10,
+                  }}
+                >
+                  {errorMessage}
+                </Text>
+              ) : null}
             </View>
             <Pressable
               onPress={onConfirm}
               accessibilityRole="button"
+              accessibilityState={{ disabled: pending }}
+              disabled={pending}
               style={({ pressed }) => [
                 styles.actionButton,
-                { opacity: pressed ? 0.6 : 1 },
+                { opacity: pressed && !pending ? 0.6 : 1 },
               ]}
             >
-              <Text
-                style={{
-                  fontFamily: resolveFont({ family: "sans", weight: "500" }),
-                  fontSize: 16,
-                  color: theme.colors.destructive,
-                  letterSpacing: -0.08,
-                }}
-              >
-                {confirmLabel}
-              </Text>
+              {pending ? (
+                <ActivityIndicator color={theme.colors.destructive} />
+              ) : (
+                <Text
+                  style={{
+                    fontFamily: resolveFont({ family: "sans", weight: "500" }),
+                    fontSize: 16,
+                    color: theme.colors.destructive,
+                    letterSpacing: -0.08,
+                  }}
+                >
+                  {confirmLabel}
+                </Text>
+              )}
             </Pressable>
           </View>
 
           <Pressable
             onPress={onCancel}
             accessibilityRole="button"
+            accessibilityState={{ disabled: pending }}
+            disabled={pending}
             style={({ pressed }) => [
               styles.card,
               styles.cancelButton,
@@ -172,7 +209,7 @@ export function ConfirmDialog({
                 backgroundColor: theme.colors.backgroundRaised2,
                 borderColor: theme.colors.hairline,
                 borderRadius: theme.radius.xl,
-                opacity: pressed ? 0.6 : 1,
+                opacity: pending ? 0.5 : pressed ? 0.6 : 1,
               },
             ]}
           >

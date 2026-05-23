@@ -29,10 +29,10 @@ interface JournalEntryProps {
   /** Called with the trimmed body when the user taps Save. New mode only. */
   onSave?: (body: string) => void;
   /**
-   * Fired after the user confirms removal of this entry via the "Remove
-   * entry" affordance pinned to the bottom. API wiring lands later.
+   * Fired after the user confirms removal. The dialog awaits this promise:
+   * on resolve it closes; on reject it surfaces an inline error and stays open.
    */
-  onDelete?: () => void;
+  onDelete?: () => Promise<void>;
 }
 
 const ENTRY_DATE_FORMAT: Intl.DateTimeFormatOptions = {
@@ -67,6 +67,8 @@ export function JournalEntry({
   const isNew = entry?.id === "new";
   const [body, setBody] = useState(entry?.content ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deletePending, setDeletePending] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   if (!entry) return null;
 
@@ -208,10 +210,27 @@ export function JournalEntry({
         title="Remove this entry?"
         message="This can't be undone. The linked quote stays in your catalogue."
         confirmLabel="Remove"
-        onCancel={() => setConfirmDelete(false)}
-        onConfirm={() => {
+        pending={deletePending}
+        errorMessage={deleteError}
+        onCancel={() => {
+          setDeleteError(null);
           setConfirmDelete(false);
-          onDelete?.();
+        }}
+        onConfirm={async () => {
+          if (!onDelete) {
+            setConfirmDelete(false);
+            return;
+          }
+          setDeleteError(null);
+          setDeletePending(true);
+          try {
+            await onDelete();
+            setConfirmDelete(false);
+          } catch {
+            setDeleteError("Couldn't remove. Try again.");
+          } finally {
+            setDeletePending(false);
+          }
         }}
       />
     </View>

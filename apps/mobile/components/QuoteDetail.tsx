@@ -34,10 +34,10 @@ interface QuoteDetailProps {
   onOpenEntry?: (entryId: string) => void;
   onNewEntry?: () => void;
   /**
-   * Fired after the user confirms removal of the quote via the "Remove
-   * quote" affordance at the bottom of this screen. API wiring lands later.
+   * Fired after the user confirms removal. The dialog awaits this promise:
+   * on resolve it closes; on reject it surfaces an inline error and stays open.
    */
-  onDelete?: () => void;
+  onDelete?: () => Promise<void>;
 }
 
 const HORIZONTAL_GUTTER = 28;
@@ -68,6 +68,8 @@ export function QuoteDetail({
   const [editingTag, setEditingTag] = useState(false);
   const [tagDraft, setTagDraft] = useState("");
   const [confirmDeleteQuote, setConfirmDeleteQuote] = useState(false);
+  const [deletePending, setDeletePending] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   if (!quote) return null;
 
@@ -328,10 +330,27 @@ export function QuoteDetail({
         title="Remove this quote?"
         message="This will also remove any linked journal entries. This can't be undone."
         confirmLabel="Remove"
-        onCancel={() => setConfirmDeleteQuote(false)}
-        onConfirm={() => {
+        pending={deletePending}
+        errorMessage={deleteError}
+        onCancel={() => {
+          setDeleteError(null);
           setConfirmDeleteQuote(false);
-          onDelete?.();
+        }}
+        onConfirm={async () => {
+          if (!onDelete) {
+            setConfirmDeleteQuote(false);
+            return;
+          }
+          setDeleteError(null);
+          setDeletePending(true);
+          try {
+            await onDelete();
+            setConfirmDeleteQuote(false);
+          } catch {
+            setDeleteError("Couldn't remove. Try again.");
+          } finally {
+            setDeletePending(false);
+          }
         }}
       />
     </View>

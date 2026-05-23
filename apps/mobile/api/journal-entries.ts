@@ -16,3 +16,10 @@ export function getJournalEntryById(id: string) {
     .json<ApiResponse<WireJournalEntry>>()
     .then((res) => res.data);
 }
+
+export function deleteJournalEntry(id: string) {
+  return apiClient
+    .delete(`journal-entries/${id}`)
+    .json<ApiResponse<WireJournalEntry>>()
+    .then((res) => res.data);
+}
