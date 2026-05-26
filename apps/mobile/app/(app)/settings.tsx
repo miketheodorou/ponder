@@ -66,6 +66,9 @@ export default function SettingsScreen() {
 
   const dismiss = () => {
     dragX.value = 0;
+    // react-hooks/immutability doesn't model Reanimated shared values; `.value =`
+    // is the intended mutation API, not a React state mutation.
+    // eslint-disable-next-line react-hooks/immutability
     progress.value = withTiming(0, PANEL_TIMING, (finished) => {
       if (finished) runOnJS(router.back)();
     });
@@ -147,6 +150,7 @@ export default function SettingsScreen() {
     .onEnd(() => {
       if (dragX.value < -DISMISS_DRAG_THRESHOLD) {
         // User dragged past the dismiss threshold — fall through to exit.
+        // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value, not React state
         progress.value = withTiming(0, PANEL_TIMING, (finished) => {
           if (finished) runOnJS(router.back)();
         });
@@ -170,14 +174,19 @@ export default function SettingsScreen() {
     // strip on screen-left after the panel slides off, then snaps away
     // when the route unmounts.
     return {
-      transform: [{ translateX: offset * 100 + '%' }, { translateX: dragX.value }],
+      transform: [
+        { translateX: offset * 100 + '%' },
+        { translateX: dragX.value }
+      ],
       shadowOpacity: progress.value * 0.5,
       elevation: progress.value * 24
     } as never;
   });
 
   const email =
-    user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress ?? '';
+    user?.primaryEmailAddress?.emailAddress ??
+    user?.emailAddresses[0]?.emailAddress ??
+    '';
 
   const cardActiveColor = theme.colors.textPrimary;
   const cardMutedColor = theme.colors.textMuted;
@@ -187,13 +196,13 @@ export default function SettingsScreen() {
       {/* Scrim — tap anywhere outside the panel to dismiss. */}
       <Animated.View
         style={[
-          StyleSheet.absoluteFillObject,
+          StyleSheet.absoluteFill,
           { backgroundColor: 'rgba(0,0,0,0.45)' },
           scrimStyle
         ]}
       >
         <Pressable
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
           onPress={dismiss}
           accessibilityRole='button'
           accessibilityLabel='Close settings'
@@ -224,7 +233,10 @@ export default function SettingsScreen() {
 
           {/* Appearance picker — three cards in a row. */}
           <View style={styles.section}>
-            <Eyebrow size={theme.fontSize.eyebrowSm} style={styles.sectionLabel}>
+            <Eyebrow
+              size={theme.fontSize.eyebrowSm}
+              style={styles.sectionLabel}
+            >
               Appearance
             </Eyebrow>
 
@@ -256,7 +268,10 @@ export default function SettingsScreen() {
                     <Text
                       style={{
                         marginTop: 14,
-                        fontFamily: resolveFont({ family: 'sans', weight: '400' }),
+                        fontFamily: resolveFont({
+                          family: 'sans',
+                          weight: '400'
+                        }),
                         fontSize: theme.fontSize.bodyMd,
                         color: fg,
                         letterSpacing: theme.letterSpacing.loose
@@ -329,7 +344,10 @@ export default function SettingsScreen() {
             ) : null}
 
             <View style={styles.versionRow}>
-              <Eyebrow size={theme.fontSize.eyebrowSm} color={theme.colors.textFaint}>
+              <Eyebrow
+                size={theme.fontSize.eyebrowSm}
+                color={theme.colors.textFaint}
+              >
                 Ponder · v1.0
               </Eyebrow>
             </View>

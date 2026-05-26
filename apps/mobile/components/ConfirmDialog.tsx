@@ -1,22 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
   Pressable,
   StyleSheet,
   Text,
-  View,
-} from "react-native";
+  View
+} from 'react-native';
 import Animated, {
   Easing,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+  withTiming
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { resolveFont, useTheme } from "@/theme";
+import { resolveFont, useTheme } from '@/theme';
 
 interface ConfirmDialogProps {
   visible: boolean;
@@ -44,14 +44,14 @@ const HOME_INDICATOR_CLEARANCE = 24;
  */
 export function ConfirmDialog({
   visible,
-  title = "Remove this entry?",
+  title = 'Remove this entry?',
   message = "This can't be undone. The linked quote stays in your catalogue.",
-  confirmLabel = "Remove",
-  cancelLabel = "Cancel",
+  confirmLabel = 'Remove',
+  cancelLabel = 'Cancel',
   pending = false,
   errorMessage = null,
   onCancel,
-  onConfirm,
+  onConfirm
 }: ConfirmDialogProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -60,10 +60,12 @@ export function ConfirmDialog({
 
   useEffect(() => {
     if (visible) {
+      // Intentional: mount the sheet before running the enter animation.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRendered(true);
       progress.value = withTiming(1, {
         duration: SHEET_DURATION,
-        easing: SHEET_EASING,
+        easing: SHEET_EASING
       });
     } else if (rendered) {
       progress.value = withTiming(
@@ -71,7 +73,7 @@ export function ConfirmDialog({
         { duration: SHEET_DURATION, easing: SHEET_EASING },
         (finished) => {
           if (finished) runOnJS(setRendered)(false);
-        },
+        }
       );
     }
     // progress is a stable shared value; rendered is intentionally not a dep —
@@ -80,10 +82,10 @@ export function ConfirmDialog({
   }, [visible]);
 
   const scrimStyle = useAnimatedStyle(() => ({
-    opacity: progress.value,
+    opacity: progress.value
   }));
   const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: (1 - progress.value) * 320 }],
+    transform: [{ translateY: (1 - progress.value) * 320 }]
   }));
 
   if (!rendered) return null;
@@ -94,7 +96,7 @@ export function ConfirmDialog({
     <Modal
       visible
       transparent
-      animationType="none"
+      animationType='none'
       statusBarTranslucent
       onRequestClose={onCancel}
     >
@@ -104,12 +106,12 @@ export function ConfirmDialog({
           style={[
             styles.scrim,
             { backgroundColor: theme.colors.scrimStrong },
-            scrimStyle,
+            scrimStyle
           ]}
         />
         <Animated.View
           style={[styles.sheetWrap, { paddingBottom: bottomPad }, sheetStyle]}
-          pointerEvents="box-none"
+          pointerEvents='box-none'
         >
           <View
             style={[
@@ -118,37 +120,37 @@ export function ConfirmDialog({
               {
                 backgroundColor: theme.colors.backgroundRaised2,
                 borderColor: theme.colors.hairline,
-                borderRadius: theme.radius.xl,
-              },
+                borderRadius: theme.radius.xl
+              }
             ]}
           >
             <View
               style={[
                 styles.header,
-                { borderBottomColor: theme.colors.hairline },
+                { borderBottomColor: theme.colors.hairline }
               ]}
             >
               <Text
                 style={{
-                  fontFamily: resolveFont({ family: "sans", weight: "500" }),
+                  fontFamily: resolveFont({ family: 'sans', weight: '500' }),
                   fontSize: theme.fontSize.bodyLg,
                   color: theme.colors.textPrimary,
                   letterSpacing: 0.07,
-                  textAlign: "center",
-                  marginBottom: 6,
+                  textAlign: 'center',
+                  marginBottom: 6
                 }}
               >
                 {title}
               </Text>
               <Text
                 style={{
-                  fontFamily: resolveFont({ family: "sans", weight: "300" }),
+                  fontFamily: resolveFont({ family: 'sans', weight: '300' }),
                   fontSize: theme.fontSize.bodySm,
                   lineHeight: 18,
                   color: theme.colors.textMuted,
-                  textAlign: "center",
+                  textAlign: 'center',
                   maxWidth: 280,
-                  alignSelf: "center",
+                  alignSelf: 'center'
                 }}
               >
                 {message}
@@ -156,14 +158,14 @@ export function ConfirmDialog({
               {errorMessage ? (
                 <Text
                   style={{
-                    fontFamily: resolveFont({ family: "sans", weight: "400" }),
+                    fontFamily: resolveFont({ family: 'sans', weight: '400' }),
                     fontSize: theme.fontSize.bodySm,
                     lineHeight: 18,
                     color: theme.colors.destructive,
-                    textAlign: "center",
+                    textAlign: 'center',
                     maxWidth: 280,
-                    alignSelf: "center",
-                    marginTop: 10,
+                    alignSelf: 'center',
+                    marginTop: 10
                   }}
                 >
                   {errorMessage}
@@ -172,12 +174,12 @@ export function ConfirmDialog({
             </View>
             <Pressable
               onPress={onConfirm}
-              accessibilityRole="button"
+              accessibilityRole='button'
               accessibilityState={{ disabled: pending }}
               disabled={pending}
               style={({ pressed }) => [
                 styles.actionButton,
-                { opacity: pressed && !pending ? 0.6 : 1 },
+                { opacity: pressed && !pending ? 0.6 : 1 }
               ]}
             >
               {pending ? (
@@ -185,10 +187,10 @@ export function ConfirmDialog({
               ) : (
                 <Text
                   style={{
-                    fontFamily: resolveFont({ family: "sans", weight: "500" }),
+                    fontFamily: resolveFont({ family: 'sans', weight: '500' }),
                     fontSize: 16,
                     color: theme.colors.destructive,
-                    letterSpacing: -0.08,
+                    letterSpacing: -0.08
                   }}
                 >
                   {confirmLabel}
@@ -199,7 +201,7 @@ export function ConfirmDialog({
 
           <Pressable
             onPress={onCancel}
-            accessibilityRole="button"
+            accessibilityRole='button'
             accessibilityState={{ disabled: pending }}
             disabled={pending}
             style={({ pressed }) => [
@@ -209,16 +211,16 @@ export function ConfirmDialog({
                 backgroundColor: theme.colors.backgroundRaised2,
                 borderColor: theme.colors.hairline,
                 borderRadius: theme.radius.xl,
-                opacity: pending ? 0.5 : pressed ? 0.6 : 1,
-              },
+                opacity: pending ? 0.5 : pressed ? 0.6 : 1
+              }
             ]}
           >
             <Text
               style={{
-                fontFamily: resolveFont({ family: "sans", weight: "600" }),
+                fontFamily: resolveFont({ family: 'sans', weight: '600' }),
                 fontSize: 16,
                 color: theme.colors.textPrimary,
-                letterSpacing: -0.08,
+                letterSpacing: -0.08
               }}
             >
               {cancelLabel}
@@ -235,36 +237,36 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end'
   },
   scrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill
   },
   sheetWrap: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 10
   },
   card: {
-    width: "100%",
+    width: '100%',
     borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
+    overflow: 'hidden'
   },
   actionCard: {
-    marginBottom: 8,
+    marginBottom: 8
   },
   header: {
     paddingTop: 20,
     paddingHorizontal: 22,
     paddingBottom: 18,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth
   },
   actionButton: {
     paddingVertical: 17,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   cancelButton: {
     paddingVertical: 17,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    alignItems: 'center',
+    justifyContent: 'center'
+  }
 });

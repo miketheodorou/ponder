@@ -4,13 +4,13 @@
 // (used during slide transitions and for any unfilled space). Without this
 // wired to our tokens, you see white seams during navigation pushes.
 
-import {
-  DarkTheme,
-  DefaultTheme,
-  type Theme as NavigationTheme,
-} from "@react-navigation/native";
+import { DarkTheme, DefaultTheme } from "expo-router";
 
 import type { Theme } from "./tokens";
+
+// expo-router re-exports DarkTheme/DefaultTheme but not the React Navigation
+// `Theme` type; derive it from the value (structurally identical).
+type NavigationTheme = typeof DefaultTheme;
 
 export function toNavigationTheme(theme: Theme): NavigationTheme {
   const base = theme.scheme === "dark" ? DarkTheme : DefaultTheme;

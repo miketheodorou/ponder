@@ -6,11 +6,17 @@ nodeLinker: hoisted
 
 minimumReleaseAge: 1440
 
+# Some @typescript-eslint packages (pulled in transitively by eslint-config-expo)
+# publish registry metadata without a "time" field, which the age check requires.
+minimumReleaseAgeExclude:
+  - "@typescript-eslint/*"
+
 allowBuilds:
   "@clerk/shared": true
   browser-tabs-lock: true
   bufferutil: true
   core-js: true
   esbuild: true
+  msgpackr-extract: true
   unrs-resolver: true
   utf-8-validate: true

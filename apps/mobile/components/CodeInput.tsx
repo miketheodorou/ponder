@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { useEffect, useRef, useState } from 'react';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { resolveFont, useTheme } from "@/theme";
+import { resolveFont, useTheme } from '@/theme';
 
 interface CodeInputProps {
   value: string;
@@ -39,7 +39,7 @@ export function CodeInput({
   onChangeText,
   onComplete,
   length = 6,
-  autoFocus = false,
+  autoFocus = false
 }: CodeInputProps) {
   const theme = useTheme();
   const inputRef = useRef<TextInput>(null);
@@ -50,22 +50,24 @@ export function CodeInput({
   // immediately after a keystroke instead of mid-blink.
   useEffect(() => {
     if (!isFocused) return;
+    // Intentional: reset the caret to ON so the blink restarts from a keystroke.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCaretOn(true);
     const id = setInterval(() => setCaretOn((c) => !c), CARET_BLINK_MS);
     return () => clearInterval(id);
   }, [isFocused, value]);
 
   const handleChange = (next: string) => {
-    const digits = next.replace(/\D/g, "").slice(0, length);
+    const digits = next.replace(/\D/g, '').slice(0, length);
     onChangeText(digits);
     if (digits.length === length) onComplete?.(digits);
   };
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.grid} pointerEvents="none">
+      <View style={styles.grid} pointerEvents='none'>
         {Array.from({ length }).map((_, i) => {
-          const ch = value[i] ?? "";
+          const ch = value[i] ?? '';
           const filled = i < value.length;
           const active = isFocused && i === value.length;
 
@@ -77,25 +79,25 @@ export function CodeInput({
                 {
                   backgroundColor: filled
                     ? theme.colors.backgroundRaised2
-                    : "transparent",
+                    : 'transparent',
                   borderColor: active
                     ? theme.colors.textPrimary
                     : filled
                       ? theme.colors.hairlineStrong
                       : theme.colors.hairline,
                   borderRadius: theme.radius.lg,
-                  borderWidth: theme.borderWidth.hairline,
-                },
+                  borderWidth: theme.borderWidth.hairline
+                }
               ]}
             >
               {ch ? (
                 <Text
                   style={{
-                    fontFamily: resolveFont({ family: "serif", weight: "400" }),
+                    fontFamily: resolveFont({ family: 'serif', weight: '400' }),
                     fontSize: theme.fontSize.serif3xl,
                     color: theme.colors.textPrimary,
                     // 0.02em on 24px ≈ 0.48 — too small to merit a token.
-                    letterSpacing: 0.48,
+                    letterSpacing: 0.48
                   }}
                 >
                   {ch}
@@ -106,8 +108,8 @@ export function CodeInput({
                     styles.caret,
                     {
                       backgroundColor: theme.colors.textPrimary,
-                      opacity: caretOn ? 1 : 0,
-                    },
+                      opacity: caretOn ? 1 : 0
+                    }
                   ]}
                 />
               ) : null}
@@ -123,13 +125,13 @@ export function CodeInput({
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         autoFocus={autoFocus}
-        keyboardType="number-pad"
-        textContentType="oneTimeCode"
-        autoComplete="sms-otp"
+        keyboardType='number-pad'
+        textContentType='oneTimeCode'
+        autoComplete='sms-otp'
         maxLength={length}
         caretHidden
-        keyboardAppearance={theme.scheme === "dark" ? "dark" : "light"}
-        style={[StyleSheet.absoluteFillObject, styles.hiddenInput]}
+        keyboardAppearance={theme.scheme === 'dark' ? 'dark' : 'light'}
+        style={[StyleSheet.absoluteFill, styles.hiddenInput]}
       />
     </View>
   );
@@ -137,27 +139,27 @@ export function CodeInput({
 
 const styles = StyleSheet.create({
   wrap: {
-    position: "relative",
+    position: 'relative'
   },
   grid: {
-    flexDirection: "row",
-    gap: SLOT_GAP,
+    flexDirection: 'row',
+    gap: SLOT_GAP
   },
   slot: {
     flex: 1,
     height: SLOT_HEIGHT,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   caret: {
     width: 1.5,
-    height: 22,
+    height: 22
   },
   hiddenInput: {
     // Color is transparent so the TextInput's own text never paints over the
     // slot grid. Opacity stays at 1 so iOS sees a "real" input — that's what
     // lets the native tap-to-Paste edit menu attach. (At opacity 0 iOS has
     // no visible anchor and silently suppresses the callout.)
-    color: "transparent",
-  },
+    color: 'transparent'
+  }
 });
