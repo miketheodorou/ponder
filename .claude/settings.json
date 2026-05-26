@@ -1,5 +1,6 @@
 {
   "enabledPlugins": {
-    "hono-skill@hono-skill": true
+    "hono-skill@hono-skill": true,
+    "expo@claude-plugins-official": true
   }
 }
