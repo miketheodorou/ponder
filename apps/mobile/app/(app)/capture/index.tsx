@@ -31,8 +31,26 @@ export default function CaptureCameraScreen() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [torch, setTorch] = useState(false);
+  const [lenses, setLenses] = useState<string[]>([]);
+  const [macro, setMacro] = useState(false);
 
   const granted = permission?.granted ?? false;
+
+  // The ultra-wide lens focuses far closer (~2cm) than the default wide lens,
+  // so it's the one that stays sharp for up-close passages. expo-camera reports
+  // lenses by localizedName (e.g. "Back Ultra Wide Camera"); match that and
+  // pass the exact string back via `selectedLens`.
+  const macroLens = lenses.find((name) => /ultra.?wide/i.test(name));
+  const selectedLens = macro && macroLens ? macroLens : undefined;
+
+  const onCameraReady = async () => {
+    try {
+      const available = await cameraRef.current?.getAvailableLensesAsync();
+      if (available) setLenses(available);
+    } catch {
+      // Non-fatal — we just won't offer the close-up lens toggle.
+    }
+  };
 
   const onAllowCamera = () => {
     // Once the user has permanently denied, the OS dialog won't show again —
@@ -97,6 +115,8 @@ export default function CaptureCameraScreen() {
             ref={cameraRef}
             style={StyleSheet.absoluteFill}
             enableTorch={torch}
+            selectedLens={selectedLens}
+            onCameraReady={onCameraReady}
           />
         ) : permission && !granted ? (
           <View style={styles.permissionPrompt}>
@@ -158,7 +178,9 @@ export default function CaptureCameraScreen() {
 
         {granted ? (
           <View style={styles.hint}>
-            <Eyebrow size={theme.fontSize.eyebrowSm}>Frame the passage</Eyebrow>
+            <Eyebrow size={theme.fontSize.eyebrowSm}>
+              {macro ? 'Close-up lens · get within a few cm' : 'Frame the passage'}
+            </Eyebrow>
           </View>
         ) : null}
 
@@ -206,7 +228,7 @@ export default function CaptureCameraScreen() {
             >
               <View
                 style={[
-                  styles.torchButton,
+                  styles.roundButton,
                   {
                     borderColor: theme.colors.hairlineStrong,
                     backgroundColor: torch
@@ -247,8 +269,42 @@ export default function CaptureCameraScreen() {
               />
             </Pressable>
 
-            {/* Mirror the torch slot so the shutter stays centered. */}
-            <View style={styles.sideSlot} />
+            {macroLens ? (
+              <Pressable
+                onPress={() => setMacro((on) => !on)}
+                accessibilityRole='button'
+                accessibilityState={{ selected: macro }}
+                accessibilityLabel={
+                  macro ? 'Switch to standard lens' : 'Switch to close-up lens'
+                }
+                hitSlop={8}
+                style={styles.sideSlot}
+              >
+                <View
+                  style={[
+                    styles.roundButton,
+                    {
+                      borderColor: theme.colors.hairlineStrong,
+                      backgroundColor: macro
+                        ? theme.colors.textPrimary
+                        : 'transparent'
+                    }
+                  ]}
+                >
+                  <Eyebrow
+                    size={theme.fontSize.eyebrowSm}
+                    color={
+                      macro ? theme.colors.background : theme.colors.textPrimary
+                    }
+                  >
+                    {macro ? '0.5×' : '1×'}
+                  </Eyebrow>
+                </View>
+              </Pressable>
+            ) : (
+              /* Mirror the torch slot so the shutter stays centered. */
+              <View style={styles.sideSlot} />
+            )}
           </View>
         ) : null}
 
@@ -367,7 +423,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
-  torchButton: {
+  roundButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
