@@ -21,9 +21,16 @@ const DOT_TIMING = {
   easing: Easing.bezier(0.32, 0.72, 0, 1)
 };
 
+// Inner screens that aren't the camera root. The camera step shows a Close
+// affordance and dismisses the modal; every other screen shows Back. `select`
+// is a sub-step of the capture phase (step 0), so it isn't in the dot map.
+const INNER_SCREENS = ['select', 'edit', 'context', 'confirm'];
+
 // Map the current URL segment to its 0-indexed wizard step. The layout owns
 // this derivation rather than each screen passing it up, so the progress dots
 // and back-vs-close affordance stay in sync without a shared step variable.
+// `select` shares step 0 with the camera so the Skip path (no select) and the
+// photo path keep the same four-dot progression.
 function stepForSegment(last: string | undefined): number {
   if (last === 'edit') return 1;
   if (last === 'context') return 2;
@@ -35,10 +42,12 @@ export default function CaptureLayout() {
   const theme = useTheme();
   const router = useRouter();
   const segments = useSegments();
-  const step = stepForSegment(segments[segments.length - 1]);
+  const last = segments[segments.length - 1];
+  const step = stepForSegment(last);
+  const isRoot = !INNER_SCREENS.includes(last ?? '');
 
   const onPressLeft = () => {
-    if (step === 0) router.dismiss();
+    if (isRoot) router.dismiss();
     else router.back();
   };
 
@@ -50,10 +59,10 @@ export default function CaptureLayout() {
             onPress={onPressLeft}
             hitSlop={12}
             accessibilityRole='button'
-            accessibilityLabel={step === 0 ? 'Close capture' : 'Back'}
+            accessibilityLabel={isRoot ? 'Close capture' : 'Back'}
             style={styles.topBarLeft}
           >
-            {step === 0 ? (
+            {isRoot ? (
               <CloseIcon
                 size={theme.icon.md}
                 color={theme.colors.textPrimary}
@@ -79,6 +88,7 @@ export default function CaptureLayout() {
           }}
         >
           <Stack.Screen name='index' />
+          <Stack.Screen name='select' />
           <Stack.Screen name='edit' />
           <Stack.Screen name='context' />
           <Stack.Screen name='confirm' />

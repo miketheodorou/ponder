@@ -26,9 +26,9 @@ export default function CaptureEditScreen() {
   const { control } = form;
   const text = useWatch({ control, name: 'text' }) ?? '';
 
-  // When the user tapped the shutter, OCR will (eventually) pre-fill the input
-  // and they're trimming it down. When they tapped Skip, they're typing from
-  // scratch — swap the copy so the framing matches the path they took.
+  // On the photo path the user has picked lines in the `select` step, so this
+  // input arrives pre-filled and they're trimming it down. On the Skip path
+  // they're typing from scratch — swap the copy to match the path taken.
   const title = photoTaken ? 'Trim to the quote' : 'Enter the quote';
   const subtitle = photoTaken
     ? 'Edit until only the passage you want to keep remains.'

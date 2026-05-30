@@ -1,0 +1,13 @@
+diff --git a/ios/RNMLKitTextRecord.swift b/ios/RNMLKitTextRecord.swift
+index 7672854c2280694a5ad258a515d8f8cc76955ad9..3ceeb67581b9a4bb3ef4148a66a014d514eaab7f 100644
+--- a/ios/RNMLKitTextRecord.swift
++++ b/ios/RNMLKitTextRecord.swift
+@@ -70,7 +70,7 @@ func mapTextBlockToRecord(_ textBlock: TextBlock) -> BlockRecord {
+     )
+ }
+ 
+-func mapTextToRecord(_ text: Text) -> TextRecord {
++func mapTextToRecord(_ text: MLKitTextRecognition.Text) -> TextRecord {
+     return TextRecord(
+         text: text.text,
+         blocks: text.blocks.map(mapTextBlockToRecord)

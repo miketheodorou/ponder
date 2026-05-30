@@ -39,7 +39,13 @@
         }
       ],
       "expo-secure-store",
-      "@clerk/expo"
+      "@clerk/expo",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Ponder uses the camera to capture passages from your books."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

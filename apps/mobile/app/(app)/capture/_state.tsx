@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { Block } from '@infinitered/react-native-mlkit-text-recognition';
 import {
   createQuoteSchema,
   type CreateQuoteInput
@@ -13,11 +14,20 @@ import { type UseFormReturn, useForm } from 'react-hook-form';
 // screens push/pop and resets every time the modal closes (the Provider
 // unmounts on close).
 
+/** The photo + OCR result captured at the camera step, consumed by `select`. */
+export interface CaptureShot {
+  uri: string;
+  blocks: Block[];
+}
+
 interface CaptureDraftContextValue {
   form: UseFormReturn<CreateQuoteInput>;
   /** True if the user tapped the shutter at step 0; false if they tapped Skip. */
   photoTaken: boolean;
   setPhotoTaken: (taken: boolean) => void;
+  /** Camera shot + recognized blocks; null on the Skip (manual) path. */
+  shot: CaptureShot | null;
+  setShot: (shot: CaptureShot | null) => void;
 }
 
 const CaptureDraftContext = createContext<CaptureDraftContextValue | null>(null);
@@ -36,9 +46,12 @@ export function CaptureDraftProvider({ children }: { children: ReactNode }) {
     }
   });
   const [photoTaken, setPhotoTaken] = useState(false);
+  const [shot, setShot] = useState<CaptureShot | null>(null);
 
   return (
-    <CaptureDraftContext.Provider value={{ form, photoTaken, setPhotoTaken }}>
+    <CaptureDraftContext.Provider
+      value={{ form, photoTaken, setPhotoTaken, shot, setShot }}
+    >
       {children}
     </CaptureDraftContext.Provider>
   );

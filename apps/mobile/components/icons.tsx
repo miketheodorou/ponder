@@ -89,6 +89,26 @@ export function CloseIcon({ size = 16, color, strokeWidth = 1.2 }: IconProps) {
   );
 }
 
+export function BoltIcon({
+  size = 18,
+  color,
+  strokeWidth = 1.2,
+  fill = "none"
+}: IconProps & { fill?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        fill={fill}
+      />
+    </Svg>
+  );
+}
+
 export function SearchIcon({ size = 14, color, strokeWidth = 1.2 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 14 14" fill="none">
