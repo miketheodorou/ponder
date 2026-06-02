@@ -9,9 +9,13 @@
     "check-types": "turbo run check-types",
     "db:push": "pnpm --filter @ponder/db db:push",
     "db:studio": "pnpm --filter @ponder/db db:studio",
-    "db:seed": "pnpm --filter @ponder/db db:seed"
+    "db:seed": "pnpm --filter @ponder/db db:seed",
+    "netlify:dev": "netlify dev",
+    "netlify:build": "netlify build"
   },
   "devDependencies": {
+    "@netlify/functions": "^4.3.0",
+    "netlify-cli": "^23.15.1",
     "prettier": "^3.7.4",
     "turbo": "^2.9.7",
     "typescript": "6.0.3"

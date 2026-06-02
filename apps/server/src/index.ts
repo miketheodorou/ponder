@@ -1,22 +1,13 @@
-import { serve } from '@hono/node-server';
-import { Hono } from 'hono';
+// Local development entry point.
+//
+// `dotenv/config` MUST be imported first so DATABASE_URL etc. are populated
+// before `./app` (which transitively constructs the @ponder/db client) loads.
+//
+// In production this file is NOT used — Netlify imports the app directly via
+// netlify/functions/api.mts and provides env vars through the dashboard.
 import 'dotenv/config';
-import { requireAuth } from './middleware/clerk';
-import journalEntriesRouter from './routes/journal-entries';
-import quotesRouter from './routes/quotes';
-import { clerkMiddleware } from '@clerk/hono';
-
-const app = new Hono();
-
-app.use('*', clerkMiddleware());
-app.use('*', requireAuth);
-
-app.route('/journal-entries', journalEntriesRouter);
-app.route('/quotes', quotesRouter);
-
-app.get('/', (c) => {
-  return c.text('Hello Hono!');
-});
+import { serve } from '@hono/node-server';
+import app from './app';
 
 serve(
   {
@@ -24,6 +15,6 @@ serve(
     port: 3000
   },
   (info) => {
-    console.log(`Server is running on http://localhost:${info.port}`);
+    console.log(`Server is running on http://localhost:${info.port}/api`);
   }
 );

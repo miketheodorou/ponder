@@ -1,0 +1,61 @@
+# Netlify configuration for the Ponder Hono API (apps/server).
+# Deployed as Netlify Functions (Node.js serverless) — NOT Edge Functions —
+# so the `postgres` TCP driver works as-is.
+#
+# Build runs from the repo root (default base) because Turborepo + the pnpm
+# workspace both live here; `--filter=server` keeps mobile out of the build.
+
+[build]
+  # Type-checks + compiles the server. The dist/ output isn't shipped (the
+  # function is bundled separately by esbuild), but a failing tsc fails the
+  # deploy — a useful gate.
+  command = "pnpm turbo run build --filter=server"
+  # No real static site; we publish a tiny placeholder so the root domain
+  # isn't the API and Netlify has a publish dir to serve.
+  publish = "apps/server/public"
+
+[functions]
+  # Function source lives at the repo root so esbuild can resolve the
+  # hoisted node_modules and the @ponder/db workspace package cleanly.
+  directory = "netlify/functions"
+  # esbuild bundles the TypeScript function + its imports (Hono, Drizzle,
+  # postgres, @ponder/db) into one file. If a dependency ever fails to
+  # bundle, move it out of the bundle instead, e.g.:
+  #   external_node_modules = ["postgres"]
+  node_bundler = "esbuild"
+
+# ----------------------------------------------------------------------------
+# Environment contexts
+# ----------------------------------------------------------------------------
+# SECRETS ARE NOT STORED HERE. Set these per-context in the Netlify UI
+# (Site configuration > Environment variables), scoping each value to the
+# right context (Production vs. the `develop` branch):
+#
+#   DATABASE_URL           - Neon connection string (use the *pooled* host,
+#                            i.e. the "-pooler" endpoint, for serverless)
+#   CLERK_SECRET_KEY       - Clerk backend secret
+#   CLERK_PUBLISHABLE_KEY  - Clerk publishable key
+#
+# Only NON-secret, context-specific values belong in this file. APP_ENV below
+# just demonstrates the mechanism and gives the app a way to know which
+# environment it's running in.
+
+# main branch -> production deploy
+[context.production.environment]
+  APP_ENV = "production"
+
+# develop branch -> staging deploy
+# (Enable branch deploys for `develop` in the Netlify UI:
+#  Site configuration > Build & deploy > Branches.)
+[context.develop.environment]
+  APP_ENV = "staging"
+
+# ----------------------------------------------------------------------------
+# Local development: `pnpm netlify:dev`
+# ----------------------------------------------------------------------------
+# Serves the function at http://localhost:8888/api/* exactly as it runs in
+# production. `#static` tells Netlify there's no framework dev server to spawn.
+# Env for local runs comes from a linked site (`netlify link`) or a root .env.
+[dev]
+  framework = "#static"
+  publish = "apps/server/public"

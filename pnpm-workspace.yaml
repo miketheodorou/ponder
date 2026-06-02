@@ -13,10 +13,14 @@ minimumReleaseAgeExclude:
 
 allowBuilds:
   "@clerk/shared": true
+  '@parcel/watcher': true
   browser-tabs-lock: true
   bufferutil: true
   core-js: true
   esbuild: true
   msgpackr-extract: true
+  netlify-cli: true
+  sharp: true
+  unix-dgram: true
   unrs-resolver: true
   utf-8-validate: true
