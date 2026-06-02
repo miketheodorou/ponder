@@ -9,6 +9,11 @@ import quotesRouter from './routes/quotes';
 // keeping the two environments identical.
 const app = new Hono().basePath('/api');
 
+// Public health check — registered before requireAuth so it stays
+// unauthenticated. Used for uptime monitoring and to confirm a deploy is live
+// without needing a token.
+app.get('/health', (c) => c.json({ status: 'ok' }));
+
 app.use('*', requireAuth);
 
 app.route('/journal-entries', journalEntriesRouter);
