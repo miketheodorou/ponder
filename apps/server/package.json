@@ -7,7 +7,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@clerk/hono": "^0.1.24",
+    "@clerk/backend": "^3.4.14",
     "@hono/node-server": "^1.19.14",
     "@hono/zod-validator": "^0.8.0",
     "@ponder/db": "workspace:*",

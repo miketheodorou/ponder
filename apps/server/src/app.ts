@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { clerkMiddleware } from '@clerk/hono';
 import { requireAuth } from './middleware/clerk';
 import journalEntriesRouter from './routes/journal-entries';
 import quotesRouter from './routes/quotes';
@@ -10,7 +9,6 @@ import quotesRouter from './routes/quotes';
 // keeping the two environments identical.
 const app = new Hono().basePath('/api');
 
-app.use('*', clerkMiddleware());
 app.use('*', requireAuth);
 
 app.route('/journal-entries', journalEntriesRouter);
