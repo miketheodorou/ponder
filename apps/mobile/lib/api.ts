@@ -11,9 +11,11 @@ const SERVER_PORT = 3000;
 function resolveApiUrl(): string {
   if (__DEV__) {
     const host = Constants.expoConfig?.hostUri?.split(':').shift();
-    if (host) return `http://${host}:${SERVER_PORT}`;
+    if (host) return `http://${host}:${SERVER_PORT}/api`;
   }
-  return process.env.EXPO_PUBLIC_API_URL ?? `http://localhost:${SERVER_PORT}`;
+  return (
+    process.env.EXPO_PUBLIC_API_URL ?? `http://localhost:${SERVER_PORT}/api`
+  );
 }
 
 export const API_URL = resolveApiUrl();

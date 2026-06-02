@@ -13,7 +13,11 @@ export function registerAuthTokenGetter(
 }
 
 export const apiClient = ky.create({
-  baseUrl: API_URL,
+  // Use `prefix` (not `baseUrl`): ky's `baseUrl` resolves paths with
+  // `new URL(path, baseUrl)`, which DROPS a base path segment that lacks a
+  // trailing slash — e.g. base `…:3000/api` + `quotes` → `…:3000/quotes`.
+  // `prefix` does plain concatenation, so the `/api` segment is preserved.
+  prefix: API_URL,
   hooks: {
     beforeRequest: [
       async ({ request }) => {
