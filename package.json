@@ -11,10 +11,12 @@
     "db:studio": "pnpm --filter @ponder/db db:studio",
     "db:seed": "pnpm --filter @ponder/db db:seed",
     "netlify:dev": "netlify dev",
-    "netlify:build": "netlify build"
+    "netlify:build": "netlify build",
+    "build:fn": "esbuild netlify/functions/api.mts --bundle --platform=node --format=esm --outfile=netlify/bundled/api.mjs"
   },
   "devDependencies": {
     "@netlify/functions": "^4.3.0",
+    "esbuild": "^0.28.0",
     "netlify-cli": "^23.15.1",
     "prettier": "^3.7.4",
     "turbo": "^2.9.7",

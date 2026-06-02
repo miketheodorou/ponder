@@ -6,22 +6,22 @@
 # workspace both live here; `--filter=server` keeps mobile out of the build.
 
 [build]
-  # Type-checks + compiles the server. The dist/ output isn't shipped (the
-  # function is bundled separately by esbuild), but a failing tsc fails the
-  # deploy — a useful gate.
-  command = "pnpm turbo run build --filter=server"
+  # 1. `turbo run build` type-checks + compiles the server (a deploy gate;
+  #    the dist/ output itself isn't shipped).
+  # 2. `build:fn` pre-bundles the function into a single self-contained file.
+  #    We bundle it ourselves because Netlify's bundler (zisi) fails to inline
+  #    the symlinked, raw-TS @ponder/db workspace package and leaves it as a
+  #    bare import that Node can't resolve at runtime.
+  command = "pnpm turbo run build --filter=server && pnpm build:fn"
   # No real static site; we publish a tiny placeholder so the root domain
   # isn't the API and Netlify has a publish dir to serve.
   publish = "apps/server/public"
 
 [functions]
-  # Function source lives at the repo root so esbuild can resolve the
-  # hoisted node_modules and the @ponder/db workspace package cleanly.
-  directory = "netlify/functions"
-  # esbuild bundles the TypeScript function + its imports (Hono, Drizzle,
-  # postgres, @ponder/db) into one file. If a dependency ever fails to
-  # bundle, move it out of the bundle instead, e.g.:
-  #   external_node_modules = ["postgres"]
+  # Points at the PRE-BUNDLED output of `build:fn` (see [build] command), not
+  # the raw source in netlify/functions/. Each file here is already a single
+  # self-contained module, so Netlify's own bundling is a harmless no-op pass.
+  directory = "netlify/bundled"
   node_bundler = "esbuild"
 
 # ----------------------------------------------------------------------------
