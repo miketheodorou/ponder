@@ -54,9 +54,11 @@ Always import types from `@ponder/db/schema`. Never redeclare shapes that mirror
 
 - All routes are protected by a `requireAuth` middleware that verifies the Clerk session token via `@clerk/backend`'s `authenticateRequest` and sets `c.var.userId`, returning 401 when unauthenticated. (We intentionally avoid `@clerk/hono`'s `clerkMiddleware`, whose browser handshake redirects are wrong for a token-based API and loop on a dev instance + deployed domain.)
 - The app is built in `src/app.ts` (mounted under `basePath('/api')`); `src/index.ts` is the local Node dev server and `netlify/functions/api.mts` is the deployed handler.
+- `src/app.ts` also wires `hono/logger` (request logging) before the routes and an `app.onError` handler (logs failures with request context, returns structured JSON). `GET /api/health` is public — registered before `requireAuth` — for uptime checks.
 - Route handlers use `AuthedEnv` as the Hono generic so `c.var.userId` is typed.
 - Routers live in `src/routes/<resource>/index.ts` and are mounted in `src/app.ts`.
 - Queries are called directly from `@ponder/db/queries` — no ORM logic in route files.
+- **Deploys to Netlify Functions** (`main` → production, `develop` → staging). See [`docs/deployment.md`](docs/deployment.md) for the full runbook, env vars, and the non-obvious build/auth/DB constraints.
 
 ### `apps/mobile` — Expo app
 
